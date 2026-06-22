@@ -4,6 +4,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 
 /**
  * Entry point of the UtilitiesForProgrammers mod.
@@ -18,6 +19,10 @@ public class UtilitiesForProgrammers {
     public static final String MOD_ID = "utilitiesforprogrammers";
 
     public UtilitiesForProgrammers(IEventBus modEventBus, ModContainer modContainer) {
-        // Feature wiring is added in subsequent commits.
+        // Persisted client configuration (config/utilitiesforprogrammers-client.toml).
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
+
+        // Feature wiring (key bindings, HUD layer, renderers, window control) is
+        // added in subsequent commits.
     }
 }
