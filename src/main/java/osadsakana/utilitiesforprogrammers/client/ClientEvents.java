@@ -67,6 +67,9 @@ public final class ClientEvents {
         while (KeyBindings.TOGGLE_HIGHLIGHT.consumeClick()) {
             feedback(mc, "Block-update highlight", ToggleState.toggleHighlight());
         }
+        while (KeyBindings.TOGGLE_GRID.consumeClick()) {
+            feedback(mc, "Relative grid", ToggleState.toggleGrid());
+        }
     }
 
     /** Show a short on/off confirmation above the hotbar. */
