@@ -5,6 +5,8 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.NeoForge;
+import osadsakana.utilitiesforprogrammers.client.ClientEvents;
 
 /**
  * Entry point of the UtilitiesForProgrammers mod.
@@ -22,7 +24,11 @@ public class UtilitiesForProgrammers {
         // Persisted client configuration (config/utilitiesforprogrammers-client.toml).
         modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
 
-        // Feature wiring (key bindings, HUD layer, renderers, window control) is
-        // added in subsequent commits.
+        // Mod-bus: key mappings and the HUD GUI layer.
+        modEventBus.addListener(ClientEvents::onRegisterKeyMappings);
+        modEventBus.addListener(ClientEvents::onRegisterGuiLayers);
+
+        // Game-bus: per-tick key handling and HUD snapshot capture.
+        NeoForge.EVENT_BUS.addListener(ClientEvents::onClientTickPost);
     }
 }
