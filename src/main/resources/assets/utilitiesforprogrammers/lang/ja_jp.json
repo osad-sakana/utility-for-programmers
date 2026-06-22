@@ -1,0 +1,21 @@
+{
+  "key.category.utilitiesforprogrammers.main": "UtilitiesForProgrammers",
+  "key.utilitiesforprogrammers.toggle_hud": "HUD表示の切り替え",
+  "key.utilitiesforprogrammers.toggle_always_on_top": "常に最前面の切り替え",
+  "key.utilitiesforprogrammers.toggle_freeze": "表示フリーズの切り替え（HUD/ハイライトを静止）",
+  "key.utilitiesforprogrammers.toggle_grid": "相対座標グリッドの切り替え",
+  "key.utilitiesforprogrammers.toggle_highlight": "ブロック更新ハイライトの切り替え",
+
+  "hud.utilitiesforprogrammers.coords": "プレイヤーの座標: X = %d, y = %d, z = %d",
+  "hud.utilitiesforprogrammers.facing": "方角: %s",
+  "hud.utilitiesforprogrammers.dir.north": "北(-Z)",
+  "hud.utilitiesforprogrammers.dir.south": "南(+Z)",
+  "hud.utilitiesforprogrammers.dir.east": "東(+X)",
+  "hud.utilitiesforprogrammers.dir.west": "西(-X)",
+  "hud.utilitiesforprogrammers.block": "見ているブロック: %s(%d, %d, %d)",
+  "hud.utilitiesforprogrammers.no_block": "見ているブロック: なし",
+  "hud.utilitiesforprogrammers.block_id": "ブロックID: %s",
+  "hud.utilitiesforprogrammers.properties": "プロパティ: %s",
+  "hud.utilitiesforprogrammers.no_properties": "なし",
+  "hud.utilitiesforprogrammers.frozen": "[停止中]"
+}

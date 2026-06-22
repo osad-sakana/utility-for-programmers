@@ -4,5 +4,18 @@
   "key.utilitiesforprogrammers.toggle_always_on_top": "Toggle Always-on-Top",
   "key.utilitiesforprogrammers.toggle_freeze": "Toggle Freeze (hold HUD/highlights)",
   "key.utilitiesforprogrammers.toggle_grid": "Toggle Relative Grid",
-  "key.utilitiesforprogrammers.toggle_highlight": "Toggle Block-Update Highlight"
+  "key.utilitiesforprogrammers.toggle_highlight": "Toggle Block-Update Highlight",
+
+  "hud.utilitiesforprogrammers.coords": "Coordinates: X = %d, Y = %d, Z = %d",
+  "hud.utilitiesforprogrammers.facing": "Facing: %s",
+  "hud.utilitiesforprogrammers.dir.north": "North (-Z)",
+  "hud.utilitiesforprogrammers.dir.south": "South (+Z)",
+  "hud.utilitiesforprogrammers.dir.east": "East (+X)",
+  "hud.utilitiesforprogrammers.dir.west": "West (-X)",
+  "hud.utilitiesforprogrammers.block": "Looking at: %s (%d, %d, %d)",
+  "hud.utilitiesforprogrammers.no_block": "Looking at: (nothing)",
+  "hud.utilitiesforprogrammers.block_id": "Block ID: %s",
+  "hud.utilitiesforprogrammers.properties": "Properties: %s",
+  "hud.utilitiesforprogrammers.no_properties": "(none)",
+  "hud.utilitiesforprogrammers.frozen": "[FROZEN]"
 }
