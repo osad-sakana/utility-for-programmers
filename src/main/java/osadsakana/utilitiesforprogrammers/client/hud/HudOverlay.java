@@ -28,9 +28,6 @@ public final class HudOverlay implements GuiLayer {
     private static final String K_FACING = "hud.utilitiesforprogrammers.facing";
     private static final String K_BLOCK = "hud.utilitiesforprogrammers.block";
     private static final String K_NO_BLOCK = "hud.utilitiesforprogrammers.no_block";
-    private static final String K_BLOCK_ID = "hud.utilitiesforprogrammers.block_id";
-    private static final String K_PROPERTIES = "hud.utilitiesforprogrammers.properties";
-    private static final String K_NO_PROPERTIES = "hud.utilitiesforprogrammers.no_properties";
     private static final String K_FROZEN = "hud.utilitiesforprogrammers.frozen";
 
     private static final int MARGIN = 4;
@@ -38,7 +35,6 @@ public final class HudOverlay implements GuiLayer {
     private static final int LINE_GAP = 1;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
     private static final int NAME_COLOR = 0xFFFFE070;
-    private static final int ID_COLOR = 0xFFA0E0FF;
     private static final int DIM_COLOR = 0xFFB0B0B0;
     private static final int FROZEN_COLOR = 0xFFFF8080;
     private static final int BG_COLOR = 0x90000000;
@@ -78,11 +74,6 @@ public final class HudOverlay implements GuiLayer {
             lines.add(new HudLine(
                     tr(K_BLOCK, data.blockName(), target.getX(), target.getY(), target.getZ()),
                     NAME_COLOR));
-            lines.add(new HudLine(tr(K_BLOCK_ID, data.blockId()), ID_COLOR));
-            final String props = (data.blockProperties() == null || data.blockProperties().isEmpty())
-                    ? tr(K_NO_PROPERTIES)
-                    : data.blockProperties();
-            lines.add(new HudLine(tr(K_PROPERTIES, props), DIM_COLOR));
         } else {
             lines.add(new HudLine(tr(K_NO_BLOCK), DIM_COLOR));
         }

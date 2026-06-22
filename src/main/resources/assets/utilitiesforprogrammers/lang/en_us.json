@@ -14,8 +14,5 @@
   "hud.utilitiesforprogrammers.dir.west": "West (-X)",
   "hud.utilitiesforprogrammers.block": "Looking at: %s (%d, %d, %d)",
   "hud.utilitiesforprogrammers.no_block": "Looking at: (nothing)",
-  "hud.utilitiesforprogrammers.block_id": "Block ID: %s",
-  "hud.utilitiesforprogrammers.properties": "Properties: %s",
-  "hud.utilitiesforprogrammers.no_properties": "(none)",
   "hud.utilitiesforprogrammers.frozen": "[FROZEN]"
 }

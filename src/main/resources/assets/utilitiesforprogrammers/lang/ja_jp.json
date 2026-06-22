@@ -14,8 +14,5 @@
   "hud.utilitiesforprogrammers.dir.west": "西(-X)",
   "hud.utilitiesforprogrammers.block": "見ているブロック: %s(%d, %d, %d)",
   "hud.utilitiesforprogrammers.no_block": "見ているブロック: なし",
-  "hud.utilitiesforprogrammers.block_id": "ブロックID: %s",
-  "hud.utilitiesforprogrammers.properties": "プロパティ: %s",
-  "hud.utilitiesforprogrammers.no_properties": "なし",
   "hud.utilitiesforprogrammers.frozen": "[停止中]"
 }
