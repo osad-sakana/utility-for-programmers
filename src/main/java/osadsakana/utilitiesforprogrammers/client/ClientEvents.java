@@ -43,6 +43,8 @@ public final class ClientEvents {
 
         if (!togglesInitialized) {
             ToggleState.initFromConfig();
+            // Keep rendering when the window loses focus (don't auto-pause).
+            WindowController.disablePauseOnLostFocus(mc);
             togglesInitialized = true;
         }
 
@@ -69,6 +71,14 @@ public final class ClientEvents {
         }
         while (KeyBindings.TOGGLE_GRID.consumeClick()) {
             feedback(mc, "Relative grid", ToggleState.toggleGrid());
+        }
+        while (KeyBindings.TOGGLE_ALWAYS_ON_TOP.consumeClick()) {
+            feedback(mc, "Always-on-top", WindowController.toggleAlwaysOnTop(mc));
+        }
+        while (KeyBindings.TOGGLE_FREEZE.consumeClick()) {
+            final boolean frozen = ToggleState.toggleFrozen();
+            FreezeClock.setFrozen(frozen);
+            feedback(mc, "Freeze", frozen);
         }
     }
 
