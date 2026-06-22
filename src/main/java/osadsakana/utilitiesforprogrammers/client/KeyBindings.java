@@ -10,9 +10,10 @@ import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
 /**
  * Key bindings registered by the mod.
  *
- * <p>Defaults follow the feature request: {@code V} toggles always-on-top and
- * {@code F} toggles freeze. The remaining toggles are unbound by default to avoid
- * clashing with vanilla controls; users can assign keys in Options &gt; Controls.
+ * <p>Defaults are chosen from keys that are <b>unbound in vanilla 1.21.10</b> so
+ * they never conflict with normal Minecraft controls: H (HUD), G (grid),
+ * L (highLight), O (on-top), K (freeze). All can be reassigned in
+ * Options &gt; Controls.
  *
  * <p>In 1.21.10 a key binding category is a {@link KeyMapping.Category} object
  * (no longer a translation-key string); it is registered via
@@ -24,19 +25,19 @@ public final class KeyBindings {
             ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "main"));
 
     public static final KeyMapping TOGGLE_ALWAYS_ON_TOP = make(
-            "key.utilitiesforprogrammers.toggle_always_on_top", GLFW.GLFW_KEY_V);
+            "key.utilitiesforprogrammers.toggle_always_on_top", GLFW.GLFW_KEY_O);
 
     public static final KeyMapping TOGGLE_FREEZE = make(
-            "key.utilitiesforprogrammers.toggle_freeze", GLFW.GLFW_KEY_F);
+            "key.utilitiesforprogrammers.toggle_freeze", GLFW.GLFW_KEY_K);
 
     public static final KeyMapping TOGGLE_HUD = make(
-            "key.utilitiesforprogrammers.toggle_hud", GLFW.GLFW_KEY_UNKNOWN);
+            "key.utilitiesforprogrammers.toggle_hud", GLFW.GLFW_KEY_H);
 
     public static final KeyMapping TOGGLE_GRID = make(
-            "key.utilitiesforprogrammers.toggle_grid", GLFW.GLFW_KEY_UNKNOWN);
+            "key.utilitiesforprogrammers.toggle_grid", GLFW.GLFW_KEY_G);
 
     public static final KeyMapping TOGGLE_HIGHLIGHT = make(
-            "key.utilitiesforprogrammers.toggle_highlight", GLFW.GLFW_KEY_UNKNOWN);
+            "key.utilitiesforprogrammers.toggle_highlight", GLFW.GLFW_KEY_L);
 
     private static KeyMapping make(String descriptionId, int defaultKey) {
         return new KeyMapping(
