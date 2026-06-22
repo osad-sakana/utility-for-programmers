@@ -2,8 +2,6 @@ package osadsakana.utilitiesforprogrammers.client.render;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
-
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 
@@ -62,38 +60,41 @@ public final class HighlightRenderer {
         pose.translate(-cam.x, -cam.y, -cam.z);
         final PoseStack.Pose last = pose.last();
 
-        final VertexConsumer lines = buffers.getBuffer(RenderType.lines());
-        @Nullable final VertexConsumer filled =
-                drawFill ? buffers.getBuffer(RenderType.debugFilledBox()) : null;
+        // The shared BufferSource only builds one RenderType at a time, so the
+        // wireframe and fill passes must be fully separate (build -> endBatch).
 
+        // Pass 1: wireframe outlines.
+        final VertexConsumer lines = buffers.getBuffer(RenderType.lines());
         for (BlockChangeTracker.Change change : changes) {
             final float fraction = ageFraction(now - change.timeMillis(), ttlMs);
-            final float red = 1.0F - fraction;
-            final float green = 0.0F;
-            final float blue = fraction;
-            final float alpha = Math.max(0.0F, 1.0F - fraction);
-
-            final BlockPos pos = change.pos();
-            final AABB box = new AABB(
-                    pos.getX(), pos.getY(), pos.getZ(),
-                    pos.getX() + 1.0D, pos.getY() + 1.0D, pos.getZ() + 1.0D)
-                    .inflate(OUTLINE_INFLATE);
-
-            ShapeRenderer.renderLineBox(last, lines, box, red, green, blue, alpha);
-
-            if (filled != null) {
-                ShapeRenderer.addChainedFilledBoxVertices(
-                        pose, filled,
-                        box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
-                        red, green, blue, alpha * FILL_ALPHA_SCALE);
-            }
+            final AABB box = boxAround(change.pos());
+            ShapeRenderer.renderLineBox(last, lines, box,
+                    1.0F - fraction, 0.0F, fraction, Math.max(0.0F, 1.0F - fraction));
         }
-
         buffers.endBatch(RenderType.lines());
-        if (filled != null) {
+
+        // Pass 2: optional translucent filled boxes.
+        if (drawFill) {
+            final VertexConsumer filled = buffers.getBuffer(RenderType.debugFilledBox());
+            for (BlockChangeTracker.Change change : changes) {
+                final float fraction = ageFraction(now - change.timeMillis(), ttlMs);
+                final AABB box = boxAround(change.pos());
+                ShapeRenderer.addChainedFilledBoxVertices(pose, filled,
+                        box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
+                        1.0F - fraction, 0.0F, fraction,
+                        Math.max(0.0F, 1.0F - fraction) * FILL_ALPHA_SCALE);
+            }
             buffers.endBatch(RenderType.debugFilledBox());
         }
+
         pose.popPose();
+    }
+
+    private static AABB boxAround(BlockPos pos) {
+        return new AABB(
+                pos.getX(), pos.getY(), pos.getZ(),
+                pos.getX() + 1.0D, pos.getY() + 1.0D, pos.getZ() + 1.0D)
+                .inflate(OUTLINE_INFLATE);
     }
 
     private static float ageFraction(long ageMs, double ttlMs) {

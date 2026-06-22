@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Client",
+      "presentation": {
+        "group": "Mod Development - utilitiesforprogrammers",
+        "order": 0
+      },
+      "projectName": "utilitiesforprogrammers",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@/Users/user/dev/utility-for-programmers/build/moddev/clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@/Users/user/dev/utility-for-programmers/build/moddev/clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dutilitiesforprogrammers%%/Users/user/dev/utility-for-programmers/bin/main"
+      ],
+      "cwd": "${workspaceFolder}/run",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}
