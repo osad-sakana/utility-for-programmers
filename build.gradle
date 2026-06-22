@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+
+version = project.mod_version
+group = project.mod_group_id
+
+base {
+    archivesName = project.mod_id
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+neoForge {
+    version = project.neo_version
+
+    // Mixins declared in neoforge.mods.toml are picked up automatically, but the
+    // refmap / processing needs the configuration registered here as well.
+    mods {
+        "${project.mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        // This is a client-side only mod, so only a client run is configured.
+        client {
+            client()
+        }
+    }
+}
+
+dependencies {
+}
+
+// Make the published jar carry the standard NeoForge manifest attributes.
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+            'Specification-Title'     : project.mod_id,
+            'Specification-Vendor'    : project.mod_authors,
+            'Specification-Version'   : '1',
+            'Implementation-Title'    : project.name,
+            'Implementation-Version'  : project.mod_version,
+            'Implementation-Vendor'   : project.mod_authors,
+        ])
+    }
+}

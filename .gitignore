@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+out/
+classes/
+
+# Eclipse
+*.launch
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# minecraft / neoforge runtime
+run/
+runs/
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Local gradle distribution downloaded for bootstrap
+/.gradle-dist/

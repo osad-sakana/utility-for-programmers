@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "osadsakana.utilitiesforprogrammers.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "utilitiesforprogrammers.refmap.json",
+  "client": [
+    "ClientPacketListenerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
