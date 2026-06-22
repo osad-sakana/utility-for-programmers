@@ -10,6 +10,7 @@ import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
 import osadsakana.utilitiesforprogrammers.client.hud.HudData;
 import osadsakana.utilitiesforprogrammers.client.hud.HudOverlay;
+import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
 
 /**
  * Central client-side event wiring: key-mapping/GUI-layer registration on the mod
@@ -47,8 +48,14 @@ public final class ClientEvents {
 
         handleKeys(mc);
 
+        if (mc.level == null) {
+            // Returned to the main menu / disconnected: drop stale highlights.
+            BlockChangeTracker.clear();
+            return;
+        }
+
         // Refresh the HUD snapshot unless frozen (freezing holds the last values).
-        if (mc.player != null && mc.level != null && !ToggleState.isFrozen()) {
+        if (mc.player != null && !ToggleState.isFrozen()) {
             HudData.set(HudData.capture(mc));
         }
     }
@@ -56,6 +63,9 @@ public final class ClientEvents {
     private static void handleKeys(Minecraft mc) {
         while (KeyBindings.TOGGLE_HUD.consumeClick()) {
             feedback(mc, "HUD", ToggleState.toggleHud());
+        }
+        while (KeyBindings.TOGGLE_HIGHLIGHT.consumeClick()) {
+            feedback(mc, "Block-update highlight", ToggleState.toggleHighlight());
         }
     }
 

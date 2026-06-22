@@ -7,6 +7,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import osadsakana.utilitiesforprogrammers.client.ClientEvents;
+import osadsakana.utilitiesforprogrammers.client.render.HighlightRenderer;
 
 /**
  * Entry point of the UtilitiesForProgrammers mod.
@@ -30,5 +31,7 @@ public class UtilitiesForProgrammers {
 
         // Game-bus: per-tick key handling and HUD snapshot capture.
         NeoForge.EVENT_BUS.addListener(ClientEvents::onClientTickPost);
+        // Game-bus: 3D block-update highlight rendering.
+        NeoForge.EVENT_BUS.addListener(HighlightRenderer::onRenderLevelStage);
     }
 }

@@ -1,0 +1,112 @@
+package osadsakana.utilitiesforprogrammers.client.render;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import osadsakana.utilitiesforprogrammers.Config;
+import osadsakana.utilitiesforprogrammers.client.FreezeClock;
+import osadsakana.utilitiesforprogrammers.client.ToggleState;
+import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
+
+/**
+ * Renders a wireframe (and optional translucent filled) box around each recently
+ * changed block. Boxes are colored by placement order: newest = red, fading
+ * through to blue, with opacity fading to zero as a change approaches its expiry.
+ *
+ * <p>Drawn during {@link RenderLevelStageEvent.AfterEntities}, the only level
+ * stage in 1.21.10 that supplies a usable {@link PoseStack}; geometry is built in
+ * camera-relative world space, matching the vanilla debug/outline renderers.
+ */
+public final class HighlightRenderer {
+
+    private static final double OUTLINE_INFLATE = 0.002D;
+    private static final float FILL_ALPHA_SCALE = 0.22F;
+
+    public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
+        if (!Config.HIGHLIGHT_ENABLED.get() || !ToggleState.isHighlightVisible()) {
+            return;
+        }
+        final PoseStack pose = event.getPoseStack();
+        if (pose == null) {
+            return;
+        }
+        final Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) {
+            return;
+        }
+        final List<BlockChangeTracker.Change> changes = BlockChangeTracker.snapshot();
+        if (changes.isEmpty()) {
+            return;
+        }
+
+        final long now = FreezeClock.now();
+        final double ttlMs = Config.HIGHLIGHT_SECONDS.get() * 1000.0D;
+        final boolean drawFill = Config.HIGHLIGHT_FILL.get();
+
+        final Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
+        final MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+
+        pose.pushPose();
+        pose.translate(-cam.x, -cam.y, -cam.z);
+        final PoseStack.Pose last = pose.last();
+
+        final VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        @Nullable final VertexConsumer filled =
+                drawFill ? buffers.getBuffer(RenderType.debugFilledBox()) : null;
+
+        for (BlockChangeTracker.Change change : changes) {
+            final float fraction = ageFraction(now - change.timeMillis(), ttlMs);
+            final float red = 1.0F - fraction;
+            final float green = 0.0F;
+            final float blue = fraction;
+            final float alpha = Math.max(0.0F, 1.0F - fraction);
+
+            final BlockPos pos = change.pos();
+            final AABB box = new AABB(
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    pos.getX() + 1.0D, pos.getY() + 1.0D, pos.getZ() + 1.0D)
+                    .inflate(OUTLINE_INFLATE);
+
+            ShapeRenderer.renderLineBox(last, lines, box, red, green, blue, alpha);
+
+            if (filled != null) {
+                ShapeRenderer.addChainedFilledBoxVertices(
+                        pose, filled,
+                        box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
+                        red, green, blue, alpha * FILL_ALPHA_SCALE);
+            }
+        }
+
+        buffers.endBatch(RenderType.lines());
+        if (filled != null) {
+            buffers.endBatch(RenderType.debugFilledBox());
+        }
+        pose.popPose();
+    }
+
+    private static float ageFraction(long ageMs, double ttlMs) {
+        if (ttlMs <= 0.0D) {
+            return 1.0F;
+        }
+        final double raw = ageMs / ttlMs;
+        if (raw <= 0.0D) {
+            return 0.0F;
+        }
+        return raw >= 1.0D ? 1.0F : (float) raw;
+    }
+
+    private HighlightRenderer() {
+    }
+}
