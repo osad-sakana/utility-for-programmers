@@ -12,8 +12,8 @@ import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
  *
  * <p>Defaults are chosen from keys that are <b>unbound in vanilla 1.21.10</b> so
  * they never conflict with normal Minecraft controls: H (HUD), G (grid),
- * L (highLight), O (on-top), K (freeze). All can be reassigned in
- * Options &gt; Controls.
+ * L (highLight), O (on-top), K (freeze), U (free mouse / unlock). All can be
+ * reassigned in Options &gt; Controls.
  *
  * <p>In 1.21.10 a key binding category is a {@link KeyMapping.Category} object
  * (no longer a translation-key string); it is registered via
@@ -39,6 +39,9 @@ public final class KeyBindings {
     public static final KeyMapping TOGGLE_HIGHLIGHT = make(
             "key.utilitiesforprogrammers.toggle_highlight", GLFW.GLFW_KEY_L);
 
+    public static final KeyMapping TOGGLE_FREE_MOUSE = make(
+            "key.utilitiesforprogrammers.toggle_free_mouse", GLFW.GLFW_KEY_U);
+
     private static KeyMapping make(String descriptionId, int defaultKey) {
         return new KeyMapping(
                 descriptionId,
@@ -55,6 +58,7 @@ public final class KeyBindings {
                 TOGGLE_HUD,
                 TOGGLE_GRID,
                 TOGGLE_HIGHLIGHT,
+                TOGGLE_FREE_MOUSE,
         };
     }
 

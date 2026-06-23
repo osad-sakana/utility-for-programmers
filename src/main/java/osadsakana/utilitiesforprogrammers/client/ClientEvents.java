@@ -84,6 +84,17 @@ public final class ClientEvents {
             FreezeClock.setFrozen(frozen);
             feedback(mc, "Freeze", frozen);
         }
+        while (KeyBindings.TOGGLE_FREE_MOUSE.consumeClick()) {
+            final boolean free = ToggleState.toggleMouseFree();
+            // Release immediately when enabling; the MouseHandler mixin keeps it
+            // released. Re-grab when disabling (the flag is already false).
+            if (free) {
+                mc.mouseHandler.releaseMouse();
+            } else {
+                mc.mouseHandler.grabMouse();
+            }
+            feedback(mc, "Free mouse", free);
+        }
     }
 
     /** Show a short on/off confirmation above the hotbar. */

@@ -22,6 +22,9 @@ public final class ToggleState {
     /** Whether the game window is currently pinned always-on-top. */
     private static volatile boolean alwaysOnTop = false;
 
+    /** When true, the mouse cursor is released so other windows can be operated. */
+    private static volatile boolean mouseFree = false;
+
     /** Re-seed the live toggles from the persisted config (called when a level loads). */
     public static void initFromConfig() {
         hudVisible = Config.HUD_ENABLED.get();
@@ -49,6 +52,10 @@ public final class ToggleState {
         return alwaysOnTop;
     }
 
+    public static boolean isMouseFree() {
+        return mouseFree;
+    }
+
     public static boolean toggleHud() {
         hudVisible = !hudVisible;
         return hudVisible;
@@ -71,6 +78,11 @@ public final class ToggleState {
 
     public static void setAlwaysOnTop(boolean value) {
         alwaysOnTop = value;
+    }
+
+    public static boolean toggleMouseFree() {
+        mouseFree = !mouseFree;
+        return mouseFree;
     }
 
     private ToggleState() {

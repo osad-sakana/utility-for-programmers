@@ -4,7 +4,8 @@
   "package": "osadsakana.utilitiesforprogrammers.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ClientPacketListenerMixin"
+    "ClientPacketListenerMixin",
+    "MouseHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
