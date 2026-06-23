@@ -8,6 +8,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
+import osadsakana.utilitiesforprogrammers.client.hud.FocusBorderOverlay;
 import osadsakana.utilitiesforprogrammers.client.hud.HudData;
 import osadsakana.utilitiesforprogrammers.client.hud.HudOverlay;
 import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
@@ -20,6 +21,8 @@ public final class ClientEvents {
 
     private static final ResourceLocation HUD_LAYER =
             ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "hud");
+    private static final ResourceLocation FOCUS_BORDER_LAYER =
+            ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "focus_border");
 
     private static boolean togglesInitialized = false;
 
@@ -34,6 +37,7 @@ public final class ClientEvents {
 
     public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(HUD_LAYER, new HudOverlay());
+        event.registerAboveAll(FOCUS_BORDER_LAYER, new FocusBorderOverlay());
     }
 
     // ----- game-bus per-tick handling -----------------------------------------

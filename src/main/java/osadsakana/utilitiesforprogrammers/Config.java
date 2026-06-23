@@ -31,6 +31,16 @@ public final class Config {
     /** Half-size of the grid (number of blocks drawn in each direction). */
     public static final ModConfigSpec.IntValue GRID_RADIUS;
 
+    // ----- Window focus border -------------------------------------------------
+    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_ENABLED;
+    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_WHEN_FOCUSED;
+    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_WHEN_UNFOCUSED;
+    public static final ModConfigSpec.IntValue FOCUS_BORDER_THICKNESS;
+    /** Border color while focused, as ARGB hex (e.g. {@code CC55FF55}). */
+    public static final ModConfigSpec.ConfigValue<String> FOCUS_BORDER_COLOR_FOCUSED;
+    /** Border color while unfocused, as ARGB hex (e.g. {@code CCFF5555}). */
+    public static final ModConfigSpec.ConfigValue<String> FOCUS_BORDER_COLOR_UNFOCUSED;
+
     static {
         final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -67,7 +77,43 @@ public final class Config {
                 .defineInRange("radius", 8, 1, 32);
         builder.pop();
 
+        builder.comment("Screen-edge border that indicates the window focus (active) state")
+                .push("focusBorder");
+        FOCUS_BORDER_ENABLED = builder
+                .comment("Master switch for the screen-edge focus border.")
+                .define("enabled", true);
+        FOCUS_BORDER_WHEN_FOCUSED = builder
+                .comment("Show the border while the window is focused (active).")
+                .define("showWhenFocused", true);
+        FOCUS_BORDER_WHEN_UNFOCUSED = builder
+                .comment("Show the border while the window is unfocused (inactive).")
+                .define("showWhenUnfocused", true);
+        FOCUS_BORDER_THICKNESS = builder
+                .comment("Border thickness in GUI pixels.")
+                .defineInRange("thickness", 4, 1, 32);
+        FOCUS_BORDER_COLOR_FOCUSED = builder
+                .comment("Border color when focused, ARGB hex (default green).")
+                .define("focusedColorARGB", "CC55FF55", Config::isHexColor);
+        FOCUS_BORDER_COLOR_UNFOCUSED = builder
+                .comment("Border color when unfocused, ARGB hex (default red).")
+                .define("unfocusedColorARGB", "CCFF5555", Config::isHexColor);
+        builder.pop();
+
         SPEC = builder.build();
+    }
+
+    /** Accepts 1-8 hex digits (RGB or ARGB). */
+    public static boolean isHexColor(Object value) {
+        return value instanceof String s && s.matches("(?i)[0-9a-f]{1,8}");
+    }
+
+    /** Parse an ARGB hex string to an int color, or transparent black if invalid. */
+    public static int parseColor(String hex) {
+        try {
+            return (int) Long.parseLong(hex, 16);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     private Config() {
