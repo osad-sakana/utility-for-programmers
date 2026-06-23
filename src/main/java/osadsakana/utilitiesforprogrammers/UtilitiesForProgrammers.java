@@ -9,6 +9,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import osadsakana.utilitiesforprogrammers.client.ClientEvents;
 import osadsakana.utilitiesforprogrammers.client.render.GridRenderer;
 import osadsakana.utilitiesforprogrammers.client.render.HighlightRenderer;
+import osadsakana.utilitiesforprogrammers.client.render.TargetHighlightRenderer;
 
 /**
  * Entry point of the UtilitiesForProgrammers mod.
@@ -36,5 +37,7 @@ public class UtilitiesForProgrammers {
         NeoForge.EVENT_BUS.addListener(HighlightRenderer::onRenderLevelStage);
         // Game-bus: relative-coordinate ground grid rendering.
         NeoForge.EVENT_BUS.addListener(GridRenderer::onRenderLevelStage);
+        // Game-bus: stronger highlight of the looking-at block.
+        NeoForge.EVENT_BUS.addListener(TargetHighlightRenderer::onRenderLevelStage);
     }
 }

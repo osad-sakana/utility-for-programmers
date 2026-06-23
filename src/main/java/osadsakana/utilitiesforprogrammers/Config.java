@@ -31,6 +31,14 @@ public final class Config {
     /** Half-size of the grid (number of blocks drawn in each direction). */
     public static final ModConfigSpec.IntValue GRID_RADIUS;
 
+    // ----- Looking-at (target) block highlight --------------------------------
+    public static final ModConfigSpec.BooleanValue TARGET_HL_ENABLED;
+    /** Outline color of the looking-at block, ARGB hex (e.g. {@code FFFFEE00}). */
+    public static final ModConfigSpec.ConfigValue<String> TARGET_HL_COLOR;
+    public static final ModConfigSpec.BooleanValue TARGET_HL_FILL;
+    /** Alpha (0-255) of the translucent fill for the looking-at block. */
+    public static final ModConfigSpec.IntValue TARGET_HL_FILL_ALPHA;
+
     // ----- Window focus border -------------------------------------------------
     public static final ModConfigSpec.BooleanValue FOCUS_BORDER_ENABLED;
     public static final ModConfigSpec.BooleanValue FOCUS_BORDER_WHEN_FOCUSED;
@@ -75,6 +83,22 @@ public final class Config {
         GRID_RADIUS = builder
                 .comment("How many blocks the grid extends in each direction from the player.")
                 .defineInRange("radius", 8, 1, 32);
+        builder.pop();
+
+        builder.comment("Stronger highlight of the block the player is looking at")
+                .push("targetHighlight");
+        TARGET_HL_ENABLED = builder
+                .comment("Master switch for highlighting the looking-at block.")
+                .define("enabled", true);
+        TARGET_HL_COLOR = builder
+                .comment("Outline color of the looking-at block, ARGB hex (default yellow).")
+                .define("outlineColorARGB", "FFFFEE00", Config::isHexColor);
+        TARGET_HL_FILL = builder
+                .comment("Also draw a translucent fill on the looking-at block.")
+                .define("drawFill", true);
+        TARGET_HL_FILL_ALPHA = builder
+                .comment("Alpha (0-255) of the translucent fill.")
+                .defineInRange("fillAlpha", 48, 0, 255);
         builder.pop();
 
         builder.comment("Screen-edge border that indicates the window focus (active) state")
