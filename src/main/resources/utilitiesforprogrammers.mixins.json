@@ -4,6 +4,7 @@
   "package": "osadsakana.utilitiesforprogrammers.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "ClientInputAccessor",
     "ClientPacketListenerMixin",
     "MouseHandlerMixin",
     "KeyboardInputMixin"
