@@ -2,10 +2,9 @@
   "key.category.utilitiesforprogrammers.main": "UtilitiesForProgrammers",
   "key.utilitiesforprogrammers.toggle_hud": "HUD表示の切り替え",
   "key.utilitiesforprogrammers.toggle_always_on_top": "常に最前面の切り替え",
-  "key.utilitiesforprogrammers.toggle_freeze": "表示フリーズの切り替え（HUD/ハイライトを静止）",
+  "key.utilitiesforprogrammers.toggle_freeze": "外部操作モードの切り替え（マウス解放＋静止）",
   "key.utilitiesforprogrammers.toggle_grid": "相対座標グリッドの切り替え",
   "key.utilitiesforprogrammers.toggle_highlight": "ブロック更新ハイライトの切り替え",
-  "key.utilitiesforprogrammers.toggle_free_mouse": "マウス解放モードの切り替え（他ウィンドウ操作）",
 
   "hud.utilitiesforprogrammers.coords": "プレイヤーの座標: X = %d, y = %d, z = %d",
   "hud.utilitiesforprogrammers.facing": "方角: %s",

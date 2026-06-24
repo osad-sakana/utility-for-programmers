@@ -82,18 +82,15 @@ public final class ClientEvents {
         while (KeyBindings.TOGGLE_FREEZE.consumeClick()) {
             final boolean frozen = ToggleState.toggleFrozen();
             FreezeClock.setFrozen(frozen);
-            feedback(mc, "Freeze", frozen);
-        }
-        while (KeyBindings.TOGGLE_FREE_MOUSE.consumeClick()) {
-            final boolean free = ToggleState.toggleMouseFree();
-            // Release immediately when enabling; the MouseHandler mixin keeps it
-            // released. Re-grab when disabling (the flag is already false).
-            if (free) {
+            // External-operation mode: release the cursor so other windows can be
+            // operated (the MouseHandler mixin keeps it released, the KeyboardInput
+            // mixin freezes movement). Re-grab on disable (flag already false).
+            if (frozen) {
                 mc.mouseHandler.releaseMouse();
             } else {
                 mc.mouseHandler.grabMouse();
             }
-            feedback(mc, "Free mouse", free);
+            feedback(mc, "Freeze", frozen);
         }
     }
 
