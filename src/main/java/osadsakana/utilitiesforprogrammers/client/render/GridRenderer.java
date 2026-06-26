@@ -7,7 +7,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -17,20 +16,21 @@ import osadsakana.utilitiesforprogrammers.client.ToggleState;
 /**
  * Projects a relative-coordinate grid onto the ground around the player.
  *
- * <p>A faint 1-block grid gives a sense of scale; two brighter axes through the
- * player show the relative directions based on facing — the "forward/back" axis
- * (blue) and the "right/left" axis (red) — to connect absolute coordinates with
- * instructions like "3 steps right, 5 steps forward".
+ * <p>A faint 1-block grid gives a sense of scale; two arrows anchored at the
+ * world origin (0, 0, 0) show the absolute axes — +X (red) and +Z (blue) — so
+ * the directions stay fixed and match the coordinates shown on the HUD.
  */
 public final class GridRenderer {
 
     private static final float GRID_R = 0.55F, GRID_G = 0.55F, GRID_B = 0.55F, GRID_A = 0.28F;
-    private static final float FWD_R = 0.30F, FWD_G = 0.65F, FWD_B = 1.00F, AXIS_A = 0.85F;
-    private static final float RIGHT_R = 1.00F, RIGHT_G = 0.30F, RIGHT_B = 0.30F;
+    private static final float X_R = 1.00F, X_G = 0.30F, X_B = 0.30F; // +X axis: red
+    private static final float Z_R = 0.30F, Z_G = 0.65F, Z_B = 1.00F; // +Z axis: blue
+    private static final float AXIS_A = 0.85F;
+    private static final double ARROW_HEAD = 0.6D; // arrowhead barb length, in blocks
     private static final double Y_OFFSET = 0.01D;
 
     public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
-        if (!Config.GRID_ENABLED.get() || !ToggleState.isGridVisible()) {
+        if (!ToggleState.isEnabled() || !Config.GRID_ENABLED.get()) {
             return;
         }
         final PoseStack pose = event.getPoseStack();
@@ -69,19 +69,17 @@ public final class GridRenderer {
             line(lines, last, minX, y, z, maxX, y, z, GRID_R, GRID_G, GRID_B, GRID_A);
         }
 
-        // Relative axes through the player's column.
-        final double px = centerX + 0.5D;
-        final double pz = centerZ + 0.5D;
-        final boolean facingAlongZ = player.getDirection().getAxis() == Direction.Axis.Z;
-
-        // Forward/back axis runs along the facing axis; right/left is perpendicular.
-        if (facingAlongZ) {
-            line(lines, last, px, y, minZ, px, y, maxZ, FWD_R, FWD_G, FWD_B, AXIS_A);
-            line(lines, last, minX, y, pz, maxX, y, pz, RIGHT_R, RIGHT_G, RIGHT_B, AXIS_A);
-        } else {
-            line(lines, last, minX, y, pz, maxX, y, pz, FWD_R, FWD_G, FWD_B, AXIS_A);
-            line(lines, last, px, y, minZ, px, y, maxZ, RIGHT_R, RIGHT_G, RIGHT_B, AXIS_A);
-        }
+        // Absolute coordinate axes anchored at the world origin (0, 0, 0), drawn
+        // as arrows so +X (red) and +Z (blue) stay fixed regardless of facing.
+        final double axisLen = radius + 1;
+        // +X arrow (red).
+        line(lines, last, 0.0D, y, 0.0D, axisLen, y, 0.0D, X_R, X_G, X_B, AXIS_A);
+        line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
+        line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, -ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
+        // +Z arrow (blue).
+        line(lines, last, 0.0D, y, 0.0D, 0.0D, y, axisLen, Z_R, Z_G, Z_B, AXIS_A);
+        line(lines, last, 0.0D, y, axisLen, ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
+        line(lines, last, 0.0D, y, axisLen, -ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
 
         buffers.endBatch(RenderType.lines());
         pose.popPose();
