@@ -44,7 +44,7 @@ public final class HudOverlay implements GuiLayer {
 
     @Override
     public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
-        if (!Config.HUD_ENABLED.get() || !ToggleState.isHudVisible()) {
+        if (!ToggleState.isEnabled() || !Config.HUD_ENABLED.get()) {
             return;
         }
         final Minecraft mc = Minecraft.getInstance();

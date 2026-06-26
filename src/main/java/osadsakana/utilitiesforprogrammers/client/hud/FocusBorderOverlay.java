@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.neoforged.neoforge.client.gui.GuiLayer;
 import osadsakana.utilitiesforprogrammers.Config;
+import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
 /**
  * Draws a colored border around the screen edges that indicates whether the
@@ -19,7 +20,7 @@ public final class FocusBorderOverlay implements GuiLayer {
 
     @Override
     public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
-        if (!Config.FOCUS_BORDER_ENABLED.get()) {
+        if (!ToggleState.isEnabled() || !Config.FOCUS_BORDER_ENABLED.get()) {
             return;
         }
 

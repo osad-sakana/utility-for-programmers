@@ -1,10 +1,7 @@
 {
   "key.category.utilitiesforprogrammers.main": "UtilitiesForProgrammers",
-  "key.utilitiesforprogrammers.toggle_hud": "Toggle HUD",
-  "key.utilitiesforprogrammers.toggle_always_on_top": "Toggle Always-on-Top",
+  "key.utilitiesforprogrammers.toggle_all": "Toggle all features",
   "key.utilitiesforprogrammers.toggle_freeze": "Toggle External-Operation mode (free mouse + freeze)",
-  "key.utilitiesforprogrammers.toggle_grid": "Toggle Relative Grid",
-  "key.utilitiesforprogrammers.toggle_highlight": "Toggle Block-Update Highlight",
 
   "hud.utilitiesforprogrammers.coords": "Coordinates: X = %d, Y = %d, Z = %d",
   "hud.utilitiesforprogrammers.facing": "Facing: %s",

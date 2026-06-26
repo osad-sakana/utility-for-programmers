@@ -46,7 +46,6 @@ public final class ClientEvents {
         final Minecraft mc = Minecraft.getInstance();
 
         if (!togglesInitialized) {
-            ToggleState.initFromConfig();
             // Keep rendering when the window loses focus (don't auto-pause).
             WindowController.disablePauseOnLostFocus(mc);
             togglesInitialized = true;
@@ -67,17 +66,11 @@ public final class ClientEvents {
     }
 
     private static void handleKeys(Minecraft mc) {
-        while (KeyBindings.TOGGLE_HUD.consumeClick()) {
-            feedback(mc, "HUD", ToggleState.toggleHud());
-        }
-        while (KeyBindings.TOGGLE_HIGHLIGHT.consumeClick()) {
-            feedback(mc, "Block-update highlight", ToggleState.toggleHighlight());
-        }
-        while (KeyBindings.TOGGLE_GRID.consumeClick()) {
-            feedback(mc, "Relative grid", ToggleState.toggleGrid());
-        }
-        while (KeyBindings.TOGGLE_ALWAYS_ON_TOP.consumeClick()) {
-            feedback(mc, "Always-on-top", WindowController.toggleAlwaysOnTop(mc));
+        while (KeyBindings.TOGGLE_ALL.consumeClick()) {
+            final boolean on = ToggleState.toggleEnabled();
+            // Pin/unpin the window alongside the rest of the mod's features.
+            WindowController.applyAlwaysOnTop(mc, on);
+            feedback(mc, "UtilitiesForProgrammers", on);
         }
         while (KeyBindings.TOGGLE_FREEZE.consumeClick()) {
             final boolean frozen = ToggleState.toggleFrozen();

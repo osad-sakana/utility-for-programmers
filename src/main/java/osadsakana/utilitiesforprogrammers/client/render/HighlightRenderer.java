@@ -33,7 +33,7 @@ public final class HighlightRenderer {
     private static final float FILL_ALPHA_SCALE = 0.22F;
 
     public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
-        if (!Config.HIGHLIGHT_ENABLED.get() || !ToggleState.isHighlightVisible()) {
+        if (!ToggleState.isEnabled() || !Config.HIGHLIGHT_ENABLED.get()) {
             return;
         }
         final PoseStack pose = event.getPoseStack();

@@ -35,7 +35,7 @@ public final class BlockChangeTracker {
 
     /** Record a block change at {@code pos} if highlighting is active and it is in range. */
     public static void record(BlockPos pos) {
-        if (!Config.HIGHLIGHT_ENABLED.get() || !ToggleState.isHighlightVisible() || ToggleState.isFrozen()) {
+        if (!ToggleState.isEnabled() || !Config.HIGHLIGHT_ENABLED.get() || ToggleState.isFrozen()) {
             return;
         }
         final Minecraft mc = Minecraft.getInstance();

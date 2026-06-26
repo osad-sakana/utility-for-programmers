@@ -10,8 +10,8 @@ import net.minecraft.client.Minecraft;
  * <ul>
  *   <li>{@link #disablePauseOnLostFocus} keeps the game rendering when focus moves
  *       to another window (e.g. a coding environment) instead of pausing.</li>
- *   <li>{@link #toggleAlwaysOnTop} pins the Minecraft window above other desktop
- *       windows via the {@code GLFW_FLOATING} attribute.</li>
+ *   <li>{@link #applyAlwaysOnTop} pins/unpins the Minecraft window above other
+ *       desktop windows via the {@code GLFW_FLOATING} attribute.</li>
  * </ul>
  *
  * All methods must be called from the main (render) thread.
@@ -22,12 +22,6 @@ public final class WindowController {
         if (mc.options != null) {
             mc.options.pauseOnLostFocus = false;
         }
-    }
-
-    public static boolean toggleAlwaysOnTop(Minecraft mc) {
-        final boolean next = !ToggleState.isAlwaysOnTop();
-        applyAlwaysOnTop(mc, next);
-        return next;
     }
 
     public static void applyAlwaysOnTop(Minecraft mc, boolean onTop) {

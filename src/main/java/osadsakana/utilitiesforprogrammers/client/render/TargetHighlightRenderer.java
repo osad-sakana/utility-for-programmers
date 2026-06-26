@@ -17,6 +17,7 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import osadsakana.utilitiesforprogrammers.Config;
+import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
 /**
  * Draws a stronger highlight on the block the player is currently looking at
@@ -27,7 +28,7 @@ import osadsakana.utilitiesforprogrammers.Config;
 public final class TargetHighlightRenderer {
 
     public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
-        if (!Config.TARGET_HL_ENABLED.get()) {
+        if (!ToggleState.isEnabled() || !Config.TARGET_HL_ENABLED.get()) {
             return;
         }
         final PoseStack pose = event.getPoseStack();
