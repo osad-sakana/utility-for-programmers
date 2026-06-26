@@ -12,11 +12,11 @@
       "projectName": "utilitiesforprogrammers",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@/Users/user/dev/utility-for-programmers/build/moddev/clientRunProgramArgs.txt"
+        "@${workspaceFolder}/build/moddev/clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@/Users/user/dev/utility-for-programmers/build/moddev/clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dutilitiesforprogrammers%%/Users/user/dev/utility-for-programmers/bin/main"
+        "@${workspaceFolder}/build/moddev/clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dutilitiesforprogrammers%%${workspaceFolder}/bin/main"
       ],
       "cwd": "${workspaceFolder}/run",
       "env": {},

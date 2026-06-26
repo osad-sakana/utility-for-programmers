@@ -4,6 +4,9 @@ build/
 out/
 classes/
 
+# VSCode / Eclipse compiled output
+bin/
+
 # Eclipse
 *.launch
 
