@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="icon.png" width="128" alt="UtilitiesForProgrammers icon">
+
 # UtilitiesForProgrammers
 
 **Minecraft の中でプログラミング学習を支援する、クライアントサイド専用 MOD**
@@ -11,6 +13,8 @@
 
 座標・方角の可視化、ブロック更新のハイライト、原点基準の座標軸グリッド、
 他ウィンドウと並行作業するためのウィンドウ操作機能を提供します。
+
+![スクリーンショット](screenshot.png)
 
 </div>
 

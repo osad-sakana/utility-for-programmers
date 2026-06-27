@@ -7,6 +7,7 @@ issueTrackerURL = "https://github.com/osad-sakana/utilitiesforprogrammers/issues
 modId = "utilitiesforprogrammers"
 version = "1.0.0"
 displayName = "UtilitiesForProgrammers"
+logoFile = "pack.png"
 authors = "osad-sakana"
 description = '''
 Client-side utilities to support learning programming inside Minecraft.
