@@ -5,7 +5,7 @@ issueTrackerURL = "https://github.com/osad-sakana/utilitiesforprogrammers/issues
 
 [[mods]]
 modId = "utilitiesforprogrammers"
-version = "1.0.0"
+version = "1.0.1"
 displayName = "UtilitiesForProgrammers"
 logoFile = "pack.png"
 authors = "osad-sakana"
