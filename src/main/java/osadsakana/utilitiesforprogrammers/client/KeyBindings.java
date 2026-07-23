@@ -2,7 +2,7 @@ package osadsakana.utilitiesforprogrammers.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import org.lwjgl.glfw.GLFW;
 import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
@@ -22,7 +22,7 @@ import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
 public final class KeyBindings {
 
     public static final KeyMapping.Category CATEGORY = new KeyMapping.Category(
-            ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "main"));
+            Identifier.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "main"));
 
     /** Master switch: enables/disables all of the mod's features at once. */
     public static final KeyMapping TOGGLE_ALL = make(

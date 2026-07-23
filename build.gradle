@@ -1,38 +1,30 @@
 plugins {
-    id 'java'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.142'
 }
 
-version = project.mod_version
-group = project.mod_group_id
+version = mod_version
+group = mod_group_id
 
 base {
-    archivesName = project.mod_id
+    archivesName = mod_id
 }
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
 repositories {
-    mavenCentral()
 }
 
 neoForge {
     version = project.neo_version
 
-    // Mixins declared in neoforge.mods.toml are picked up automatically, but the
-    // refmap / processing needs the configuration registered here as well.
     mods {
-        "${project.mod_id}" {
-            sourceSet sourceSets.main
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
         }
     }
 
     runs {
-        // This is a client-side only mod, so only a client run is configured.
         client {
             client()
         }
@@ -42,7 +34,28 @@ neoForge {
 dependencies {
 }
 
-// Make the published jar carry the standard NeoForge manifest attributes.
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
 tasks.named('jar', Jar).configure {
     manifest {
         attributes([
@@ -54,4 +67,8 @@ tasks.named('jar', Jar).configure {
             'Implementation-Vendor'   : project.mod_authors,
         ])
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }

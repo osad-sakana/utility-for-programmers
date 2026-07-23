@@ -1,12 +1,9 @@
 package osadsakana.utilitiesforprogrammers.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.ShapeRenderer;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -15,7 +12,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -27,12 +24,10 @@ import osadsakana.utilitiesforprogrammers.client.ToggleState;
  */
 public final class TargetHighlightRenderer {
 
-    public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
+    private static final float OUTLINE_WIDTH = 1.0F;
+
+    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
         if (!ToggleState.isEnabled() || !Config.TARGET_HL_ENABLED.get()) {
-            return;
-        }
-        final PoseStack pose = event.getPoseStack();
-        if (pose == null) {
             return;
         }
         final Minecraft mc = Minecraft.getInstance();
@@ -52,16 +47,16 @@ public final class TargetHighlightRenderer {
         }
 
         final int outlineColor = Config.parseColor(Config.TARGET_HL_COLOR.get());
-        final Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
-        final MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        final Vec3 cam = mc.gameRenderer.mainCamera().position();
+        final PoseStack pose = event.getPoseStack();
+        final var submitNodeCollector = event.getSubmitNodeCollector();
 
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
 
         // Pass 1: outline following the block shape.
-        final VertexConsumer lines = buffers.getBuffer(RenderType.lines());
-        ShapeRenderer.renderShape(pose, lines, shape, pos.getX(), pos.getY(), pos.getZ(), outlineColor);
-        buffers.endBatch(RenderType.lines());
+        submitNodeCollector.submitShapeOutline(
+                pose, shape, RenderTypes.lines(), outlineColor, OUTLINE_WIDTH, false);
 
         // Pass 2: optional translucent fill over the shape's bounds.
         if (Config.TARGET_HL_FILL.get()) {
@@ -72,12 +67,11 @@ public final class TargetHighlightRenderer {
             final float a = alpha / 255.0F;
 
             final AABB bounds = shape.bounds();
-            final VertexConsumer filled = buffers.getBuffer(RenderType.debugFilledBox());
-            ShapeRenderer.addChainedFilledBoxVertices(pose, filled,
+            final AABB worldBox = new AABB(
                     pos.getX() + bounds.minX, pos.getY() + bounds.minY, pos.getZ() + bounds.minZ,
-                    pos.getX() + bounds.maxX, pos.getY() + bounds.maxY, pos.getZ() + bounds.maxZ,
-                    r, g, b, a);
-            buffers.endBatch(RenderType.debugFilledBox());
+                    pos.getX() + bounds.maxX, pos.getY() + bounds.maxY, pos.getZ() + bounds.maxZ);
+            submitNodeCollector.submitCustomGeometry(pose, RenderTypes.debugFilledBox(),
+                    (fillPose, buffer) -> BoxFill.submit(buffer, fillPose, worldBox, r, g, b, a));
         }
 
         pose.popPose();
