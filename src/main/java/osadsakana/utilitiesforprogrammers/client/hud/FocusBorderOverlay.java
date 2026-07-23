@@ -2,7 +2,7 @@ package osadsakana.utilitiesforprogrammers.client.hud;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.neoforged.neoforge.client.gui.GuiLayer;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
@@ -19,7 +19,7 @@ import osadsakana.utilitiesforprogrammers.client.ToggleState;
 public final class FocusBorderOverlay implements GuiLayer {
 
     @Override
-    public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (!ToggleState.isEnabled() || !Config.FOCUS_BORDER_ENABLED.get()) {
             return;
         }

@@ -34,10 +34,10 @@ public class UtilitiesForProgrammers {
         // Game-bus: per-tick key handling and HUD snapshot capture.
         NeoForge.EVENT_BUS.addListener(ClientEvents::onClientTickPost);
         // Game-bus: 3D block-update highlight rendering.
-        NeoForge.EVENT_BUS.addListener(HighlightRenderer::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(HighlightRenderer::onSubmitCustomGeometry);
         // Game-bus: relative-coordinate ground grid rendering.
-        NeoForge.EVENT_BUS.addListener(GridRenderer::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(GridRenderer::onSubmitCustomGeometry);
         // Game-bus: stronger highlight of the looking-at block.
-        NeoForge.EVENT_BUS.addListener(TargetHighlightRenderer::onRenderLevelStage);
+        NeoForge.EVENT_BUS.addListener(TargetHighlightRenderer::onSubmitCustomGeometry);
     }
 }

@@ -5,11 +5,10 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -28,13 +27,10 @@ public final class GridRenderer {
     private static final float AXIS_A = 0.85F;
     private static final double ARROW_HEAD = 0.6D; // arrowhead barb length, in blocks
     private static final double Y_OFFSET = 0.01D;
+    private static final float LINE_WIDTH = 1.0F;
 
-    public static void onRenderLevelStage(RenderLevelStageEvent.AfterEntities event) {
+    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
         if (!ToggleState.isEnabled() || !Config.GRID_ENABLED.get()) {
-            return;
-        }
-        final PoseStack pose = event.getPoseStack();
-        if (pose == null) {
             return;
         }
         final Minecraft mc = Minecraft.getInstance();
@@ -52,36 +48,33 @@ public final class GridRenderer {
         final int maxX = centerX + radius + 1;
         final int minZ = centerZ - radius;
         final int maxZ = centerZ + radius + 1;
+        final double axisLen = radius + 1;
 
-        final Vec3 cam = mc.gameRenderer.getMainCamera().getPosition();
-        final MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+        final Vec3 cam = mc.gameRenderer.mainCamera().position();
+        final PoseStack pose = event.getPoseStack();
 
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
-        final PoseStack.Pose last = pose.last();
-        final VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+        event.getSubmitNodeCollector().submitCustomGeometry(pose, RenderTypes.lines(), (last, lines) -> {
+            // Faint 1-block grid.
+            for (int x = minX; x <= maxX; x++) {
+                line(lines, last, x, y, minZ, x, y, maxZ, GRID_R, GRID_G, GRID_B, GRID_A);
+            }
+            for (int z = minZ; z <= maxZ; z++) {
+                line(lines, last, minX, y, z, maxX, y, z, GRID_R, GRID_G, GRID_B, GRID_A);
+            }
 
-        // Faint 1-block grid.
-        for (int x = minX; x <= maxX; x++) {
-            line(lines, last, x, y, minZ, x, y, maxZ, GRID_R, GRID_G, GRID_B, GRID_A);
-        }
-        for (int z = minZ; z <= maxZ; z++) {
-            line(lines, last, minX, y, z, maxX, y, z, GRID_R, GRID_G, GRID_B, GRID_A);
-        }
-
-        // Absolute coordinate axes anchored at the world origin (0, 0, 0), drawn
-        // as arrows so +X (red) and +Z (blue) stay fixed regardless of facing.
-        final double axisLen = radius + 1;
-        // +X arrow (red).
-        line(lines, last, 0.0D, y, 0.0D, axisLen, y, 0.0D, X_R, X_G, X_B, AXIS_A);
-        line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
-        line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, -ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
-        // +Z arrow (blue).
-        line(lines, last, 0.0D, y, 0.0D, 0.0D, y, axisLen, Z_R, Z_G, Z_B, AXIS_A);
-        line(lines, last, 0.0D, y, axisLen, ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
-        line(lines, last, 0.0D, y, axisLen, -ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
-
-        buffers.endBatch(RenderType.lines());
+            // Absolute coordinate axes anchored at the world origin (0, 0, 0), drawn
+            // as arrows so +X (red) and +Z (blue) stay fixed regardless of facing.
+            // +X arrow (red).
+            line(lines, last, 0.0D, y, 0.0D, axisLen, y, 0.0D, X_R, X_G, X_B, AXIS_A);
+            line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
+            line(lines, last, axisLen, y, 0.0D, axisLen - ARROW_HEAD, y, -ARROW_HEAD, X_R, X_G, X_B, AXIS_A);
+            // +Z arrow (blue).
+            line(lines, last, 0.0D, y, 0.0D, 0.0D, y, axisLen, Z_R, Z_G, Z_B, AXIS_A);
+            line(lines, last, 0.0D, y, axisLen, ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
+            line(lines, last, 0.0D, y, axisLen, -ARROW_HEAD, y, axisLen - ARROW_HEAD, Z_R, Z_G, Z_B, AXIS_A);
+        });
         pose.popPose();
     }
 
@@ -99,9 +92,9 @@ public final class GridRenderer {
             nz /= len;
         }
         consumer.addVertex(pose, (float) x1, (float) y1, (float) z1)
-                .setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
+                .setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(LINE_WIDTH);
         consumer.addVertex(pose, (float) x2, (float) y2, (float) z2)
-                .setColor(r, g, b, a).setNormal(pose, nx, ny, nz);
+                .setColor(r, g, b, a).setNormal(pose, nx, ny, nz).setLineWidth(LINE_WIDTH);
     }
 
     private GridRenderer() {

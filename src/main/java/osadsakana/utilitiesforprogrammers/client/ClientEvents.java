@@ -3,7 +3,7 @@ package osadsakana.utilitiesforprogrammers.client;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -19,10 +19,10 @@ import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
  */
 public final class ClientEvents {
 
-    private static final ResourceLocation HUD_LAYER =
-            ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "hud");
-    private static final ResourceLocation FOCUS_BORDER_LAYER =
-            ResourceLocation.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "focus_border");
+    private static final Identifier HUD_LAYER =
+            Identifier.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "hud");
+    private static final Identifier FOCUS_BORDER_LAYER =
+            Identifier.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "focus_border");
 
     private static boolean togglesInitialized = false;
 
@@ -93,8 +93,7 @@ public final class ClientEvents {
             return;
         }
         final String state = enabled ? "ON" : "OFF";
-        mc.player.displayClientMessage(
-                Component.literal("[UFP] " + label + ": " + state), true);
+        mc.player.sendOverlayMessage(Component.literal("[UFP] " + label + ": " + state));
     }
 
     private ClientEvents() {

@@ -5,6 +5,16 @@
 フォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に準拠し、
 バージョニングは [Semantic Versioning](https://semver.org/lang/ja/) に従います。
 
+## [1.1.0] - 2026-07-23
+
+Minecraft 26.2（Chaos Cubed）/ NeoForge 26.2.0.28-beta 対応。
+
+### Changed
+- ビルド対象を Minecraft 1.21.10 → 26.2、NeoForge 21.10.64 → 26.2.0.28-beta、Java 21 → 25 に更新。
+- `ResourceLocation` → `Identifier`、`GuiGraphics` → `GuiGraphicsExtractor` などの API リネームに追従。
+- ワールド空間の描画（ハイライト枠・塗りつぶし・座標軸グリッド）を、廃止された `MultiBufferSource` / `ShapeRenderer` から新しい `SubmitCustomGeometryEvent` ベースの描画パイプラインに移行。
+- `neoforge.mods.toml` をビルド時テンプレート展開方式（`src/main/templates/`）に変更。
+
 ## [1.0.0] - 2026-06-26
 
 初回リリース。Minecraft 1.21.10 / NeoForge 21.10.x 向けのクライアントサイド専用 MOD。
@@ -18,4 +28,5 @@
 - **操作キー** — `H` で全機能を一括 ON/OFF、`K` で外部操作モード（マウス解放＋移動停止＋クリック無効化＋HUD/ハイライトの静止）。
 - **設定** — `config/utilitiesforprogrammers-client.toml` で各機能・色・表示時間などを再起動なしで調整可能。
 
+[1.1.0]: https://github.com/osad-sakana/utilitiesforprogrammers/releases/tag/v1.1.0
 [1.0.0]: https://github.com/osad-sakana/utilitiesforprogrammers/releases/tag/v1.0.0

@@ -6,7 +6,7 @@ import java.util.List;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -43,7 +43,7 @@ public final class HudOverlay implements GuiLayer {
     }
 
     @Override
-    public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (!ToggleState.isEnabled() || !Config.HUD_ENABLED.get()) {
             return;
         }
@@ -93,7 +93,7 @@ public final class HudOverlay implements GuiLayer {
         return Component.translatable(key, args).getString();
     }
 
-    private static void drawPanel(GuiGraphics graphics, Font font, List<HudLine> lines) {
+    private static void drawPanel(GuiGraphicsExtractor graphics, Font font, List<HudLine> lines) {
         final int lineHeight = font.lineHeight + LINE_GAP;
 
         int maxWidth = 0;
@@ -109,7 +109,7 @@ public final class HudOverlay implements GuiLayer {
         int y = MARGIN + PADDING;
         final int x = MARGIN + PADDING;
         for (HudLine line : lines) {
-            graphics.drawString(font, line.text(), x, y, line.color());
+            graphics.text(font, line.text(), x, y, line.color());
             y += lineHeight;
         }
     }
