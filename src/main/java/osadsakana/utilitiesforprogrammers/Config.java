@@ -1,134 +1,260 @@
 package osadsakana.utilitiesforprogrammers;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Pattern;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import net.fabricmc.loader.api.FabricLoader;
 
 /**
  * Client configuration for UtilitiesForProgrammers.
  *
- * <p>Values are persisted by NeoForge to
- * {@code config/utilitiesforprogrammers-client.toml}. All settings are read at
- * render time, so editing the file (or using the in-game config screen) takes
- * effect without restarting.
+ * <p>Fabric has no built-in equivalent of NeoForge's {@code ModConfigSpec}, so this
+ * is a small hand-rolled JSON store persisted to
+ * {@code config/utilitiesforprogrammers-client.json}. All settings are read at
+ * render time via each value's {@code get()}. {@link #reloadIfChanged()} is polled
+ * periodically (see {@code ClientEvents.onClientTickPost}) so editing the file (or a
+ * future in-game config screen) takes effect without restarting, matching the
+ * previous NeoForge behavior.
+ *
+ * <p>Note on ranges: {@code radius}/{@code fillAlpha}/etc. are silently clamped to
+ * the ranges documented in {@code README.md} rather than rejected, so a hand-edited
+ * out-of-range value never breaks loading. A key that is present but invalid (wrong
+ * type, bad hex string, ...) falls back to its default and logs a warning; a key
+ * that is simply absent (e.g. an older config file, before a new option was added)
+ * falls back silently.
  */
 public final class Config {
 
-    public static final ModConfigSpec SPEC;
+    private static final Logger LOGGER = LoggerFactory.getLogger("UtilitiesForProgrammers/Config");
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final String FILE_NAME = "utilitiesforprogrammers-client.json";
+    private static final Pattern HEX_COLOR = Pattern.compile("(?i)[0-9a-f]{1,8}");
+    private static final List<Value<?>> ALL = new ArrayList<>();
+
+    static long lastLoadedModifiedMillis = -1L;
 
     // ----- HUD -----------------------------------------------------------------
-    public static final ModConfigSpec.BooleanValue HUD_ENABLED;
+    public static final BooleanValue HUD_ENABLED =
+            bool("hud", "enabled", true);
 
     // ----- Block-update highlight ---------------------------------------------
-    public static final ModConfigSpec.BooleanValue HIGHLIGHT_ENABLED;
+    public static final BooleanValue HIGHLIGHT_ENABLED =
+            bool("highlight", "enabled", true);
     /** How long (seconds) a highlight stays visible before it has fully faded out. */
-    public static final ModConfigSpec.DoubleValue HIGHLIGHT_SECONDS;
+    public static final DoubleValue HIGHLIGHT_SECONDS =
+            doubleVal("highlight", "displaySeconds", 8.0D, 0.5D, 120.0D);
     /** Only block updates within this many blocks of the player are highlighted. */
-    public static final ModConfigSpec.IntValue HIGHLIGHT_RADIUS;
+    public static final IntValue HIGHLIGHT_RADIUS =
+            intVal("highlight", "radius", 32, 1, 128);
     /** Draw filled translucent boxes in addition to the wireframe outline. */
-    public static final ModConfigSpec.BooleanValue HIGHLIGHT_FILL;
+    public static final BooleanValue HIGHLIGHT_FILL =
+            bool("highlight", "drawFilledBox", true);
 
     // ----- Relative-coordinate grid -------------------------------------------
-    public static final ModConfigSpec.BooleanValue GRID_ENABLED;
+    public static final BooleanValue GRID_ENABLED =
+            bool("grid", "enabled", true);
     /** Half-size of the grid (number of blocks drawn in each direction). */
-    public static final ModConfigSpec.IntValue GRID_RADIUS;
+    public static final IntValue GRID_RADIUS =
+            intVal("grid", "radius", 8, 1, 32);
 
     // ----- Looking-at (target) block highlight --------------------------------
-    public static final ModConfigSpec.BooleanValue TARGET_HL_ENABLED;
+    public static final BooleanValue TARGET_HL_ENABLED =
+            bool("targetHighlight", "enabled", true);
     /** Outline color of the looking-at block, ARGB hex (e.g. {@code FFFFEE00}). */
-    public static final ModConfigSpec.ConfigValue<String> TARGET_HL_COLOR;
-    public static final ModConfigSpec.BooleanValue TARGET_HL_FILL;
+    public static final ColorValue TARGET_HL_COLOR =
+            color("targetHighlight", "outlineColorARGB", "FFFFEE00");
+    public static final BooleanValue TARGET_HL_FILL =
+            bool("targetHighlight", "drawFill", true);
     /** Alpha (0-255) of the translucent fill for the looking-at block. */
-    public static final ModConfigSpec.IntValue TARGET_HL_FILL_ALPHA;
+    public static final IntValue TARGET_HL_FILL_ALPHA =
+            intVal("targetHighlight", "fillAlpha", 48, 0, 255);
 
     // ----- Window focus border -------------------------------------------------
-    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_ENABLED;
-    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_WHEN_FOCUSED;
-    public static final ModConfigSpec.BooleanValue FOCUS_BORDER_WHEN_UNFOCUSED;
-    public static final ModConfigSpec.IntValue FOCUS_BORDER_THICKNESS;
+    public static final BooleanValue FOCUS_BORDER_ENABLED =
+            bool("focusBorder", "enabled", true);
+    public static final BooleanValue FOCUS_BORDER_WHEN_FOCUSED =
+            bool("focusBorder", "showWhenFocused", true);
+    public static final BooleanValue FOCUS_BORDER_WHEN_UNFOCUSED =
+            bool("focusBorder", "showWhenUnfocused", true);
+    public static final IntValue FOCUS_BORDER_THICKNESS =
+            intVal("focusBorder", "thickness", 4, 1, 32);
     /** Border color while focused, as ARGB hex (e.g. {@code CC55FF55}). */
-    public static final ModConfigSpec.ConfigValue<String> FOCUS_BORDER_COLOR_FOCUSED;
+    public static final ColorValue FOCUS_BORDER_COLOR_FOCUSED =
+            color("focusBorder", "focusedColorARGB", "CC55FF55");
     /** Border color while unfocused, as ARGB hex (e.g. {@code CCFF5555}). */
-    public static final ModConfigSpec.ConfigValue<String> FOCUS_BORDER_COLOR_UNFOCUSED;
+    public static final ColorValue FOCUS_BORDER_COLOR_UNFOCUSED =
+            color("focusBorder", "unfocusedColorARGB", "CCFF5555");
 
-    static {
-        final ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+    private static Path configPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+    }
 
-        builder.comment("HUD: absolute coordinates, facing direction and target-block inspector")
-                .push("hud");
-        HUD_ENABLED = builder
-                .comment("Master switch for the top-left HUD overlay.")
-                .define("enabled", true);
-        builder.pop();
+    /**
+     * Loads the config from disk, creating it with defaults if the file is absent.
+     * Call once at startup.
+     */
+    public static void load() {
+        load(configPath());
+    }
 
-        builder.comment("Client-side highlighting of block updates, colored by placement order")
-                .push("highlight");
-        HIGHLIGHT_ENABLED = builder
-                .comment("Master switch for block-update highlighting.")
-                .define("enabled", true);
-        HIGHLIGHT_SECONDS = builder
-                .comment("Seconds a highlight remains before fully fading out.")
-                .defineInRange("displaySeconds", 8.0D, 0.5D, 120.0D);
-        HIGHLIGHT_RADIUS = builder
-                .comment("Detection radius in blocks around the player.")
-                .defineInRange("radius", 32, 1, 128);
-        HIGHLIGHT_FILL = builder
-                .comment("Also draw a translucent filled box (in addition to the outline).")
-                .define("drawFilledBox", true);
-        builder.pop();
+    /** Re-reads the file from disk if its modification time changed since the last load. */
+    public static void reloadIfChanged() {
+        reloadIfChanged(configPath());
+    }
 
-        builder.comment("Relative-coordinate ground grid centered on the player")
-                .push("grid");
-        GRID_ENABLED = builder
-                .comment("Master switch for the relative-coordinate grid.")
-                .define("enabled", true);
-        GRID_RADIUS = builder
-                .comment("How many blocks the grid extends in each direction from the player.")
-                .defineInRange("radius", 8, 1, 32);
-        builder.pop();
+    /**
+     * {@link #load()}, parameterized on the file path so it can be exercised in
+     * unit tests without a running {@link FabricLoader} instance.
+     *
+     * <p>A successful parse is always followed by a write-back, seeded from the
+     * parsed document so any key this version doesn't recognize (a newer key from
+     * a future version, a hand-written comment field, ...) survives untouched;
+     * only the registered {@link Value}s are overwritten with their
+     * (possibly clamped/defaulted, see {@link Value#readFrom}) effective value.
+     * This is also how a newer mod version's additional keys get merged into an
+     * older user's file.
+     *
+     * <p>A file that fails to <b>parse</b> (invalid JSON, or valid JSON that isn't
+     * an object) is left completely untouched — never overwritten — so a syntax
+     * typo never destroys existing settings. A value that parses but is invalid
+     * for its key (wrong type, out-of-range number, bad hex string, ...) is
+     * corrected in memory (see the per-{@code Value} WARN log) and that corrected
+     * value <i>is</i> written back for that key, same as NeoForge's config screen
+     * would have normalized it.
+     */
+    static void load(Path path) {
+        if (!Files.exists(path)) {
+            writeToDisk(path, null);
+            return;
+        }
+        final JsonObject parsed = parseAndApply(path);
+        if (parsed != null) {
+            writeToDisk(path, parsed);
+        }
+    }
 
-        builder.comment("Stronger highlight of the block the player is looking at")
-                .push("targetHighlight");
-        TARGET_HL_ENABLED = builder
-                .comment("Master switch for highlighting the looking-at block.")
-                .define("enabled", true);
-        TARGET_HL_COLOR = builder
-                .comment("Outline color of the looking-at block, ARGB hex (default yellow).")
-                .define("outlineColorARGB", "FFFFEE00", Config::isHexColor);
-        TARGET_HL_FILL = builder
-                .comment("Also draw a translucent fill on the looking-at block.")
-                .define("drawFill", true);
-        TARGET_HL_FILL_ALPHA = builder
-                .comment("Alpha (0-255) of the translucent fill.")
-                .defineInRange("fillAlpha", 48, 0, 255);
-        builder.pop();
+    /** {@link #reloadIfChanged()}, parameterized on the file path for unit tests. */
+    static void reloadIfChanged(Path path) {
+        try {
+            if (!Files.exists(path)) {
+                lastLoadedModifiedMillis = -1L;
+                return;
+            }
+            final long modified = Files.getLastModifiedTime(path).toMillis();
+            if (modified != lastLoadedModifiedMillis) {
+                readFromDisk(path);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Failed to check {} for changes; keeping current values", path, e);
+        }
+    }
 
-        builder.comment("Screen-edge border that indicates the window focus (active) state")
-                .push("focusBorder");
-        FOCUS_BORDER_ENABLED = builder
-                .comment("Master switch for the screen-edge focus border.")
-                .define("enabled", true);
-        FOCUS_BORDER_WHEN_FOCUSED = builder
-                .comment("Show the border while the window is focused (active).")
-                .define("showWhenFocused", true);
-        FOCUS_BORDER_WHEN_UNFOCUSED = builder
-                .comment("Show the border while the window is unfocused (inactive).")
-                .define("showWhenUnfocused", true);
-        FOCUS_BORDER_THICKNESS = builder
-                .comment("Border thickness in GUI pixels.")
-                .defineInRange("thickness", 4, 1, 32);
-        FOCUS_BORDER_COLOR_FOCUSED = builder
-                .comment("Border color when focused, ARGB hex (default green).")
-                .define("focusedColorARGB", "CC55FF55", Config::isHexColor);
-        FOCUS_BORDER_COLOR_UNFOCUSED = builder
-                .comment("Border color when unfocused, ARGB hex (default red).")
-                .define("unfocusedColorARGB", "CCFF5555", Config::isHexColor);
-        builder.pop();
+    /**
+     * Reads {@code path} into the registered {@link Value}s.
+     *
+     * @return {@code true} if the file parsed as a JSON object and its values were
+     *         applied; {@code false} on any failure (missing/malformed file, or a
+     *         valid JSON document that isn't an object).
+     */
+    static boolean readFromDisk(Path path) {
+        return parseAndApply(path) != null;
+    }
 
-        SPEC = builder.build();
+    /**
+     * Parses {@code path} and, on success, applies it to every registered
+     * {@link Value}.
+     *
+     * @return the parsed root object on success, or {@code null} on any failure
+     *         (missing/malformed file, or valid JSON that isn't an object). Either
+     *         way, {@code lastLoadedModifiedMillis} is advanced so a persistently
+     *         broken file is not re-parsed (and re-logged) on every poll — only
+     *         after it next changes.
+     */
+    private static JsonObject parseAndApply(Path path) {
+        if (!Files.exists(path)) {
+            lastLoadedModifiedMillis = -1L;
+            return null;
+        }
+        JsonObject result = null;
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            final JsonElement root = JsonParser.parseReader(reader);
+            if (root != null && root.isJsonObject()) {
+                result = root.getAsJsonObject();
+                for (Value<?> value : ALL) {
+                    value.readFrom(result);
+                }
+            } else {
+                LOGGER.error("{} does not contain a JSON object; keeping current values", path);
+            }
+        } catch (IOException | RuntimeException e) {
+            // Keep current (default or previously loaded) values on a malformed file;
+            // deliberately does NOT write, so the user's file is left intact to fix.
+            LOGGER.error("Failed to read {}; keeping current values and leaving the file untouched", path, e);
+        }
+        try {
+            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            // If even the mtime can't be read, the next poll will simply retry.
+        }
+        return result;
+    }
+
+    /**
+     * Writes every registered {@link Value} to {@code path}.
+     *
+     * @param base a previously-parsed document to seed the write from (its unknown
+     *             keys are preserved), or {@code null} to start from an empty
+     *             object (used when the file didn't exist yet).
+     */
+    private static void writeToDisk(Path path, JsonObject base) {
+        final JsonObject root = base != null ? base.deepCopy() : new JsonObject();
+        for (Value<?> value : ALL) {
+            value.writeTo(root);
+        }
+        Path tmp = null;
+        try {
+            Files.createDirectories(path.toAbsolutePath().getParent());
+            tmp = path.resolveSibling(path.getFileName() + ".tmp");
+            try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
+                GSON.toJson(root, writer);
+            }
+            // Atomic swap so a crash mid-write can never leave a truncated/corrupt file.
+            Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            tmp = null;
+            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException e) {
+            // Non-fatal: the mod continues to run with in-memory defaults.
+            LOGGER.error("Failed to write {}; continuing with in-memory values", path, e);
+        } finally {
+            if (tmp != null) {
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException ignored) {
+                    // Best-effort cleanup; a leftover .tmp is harmless and overwritten next time.
+                }
+            }
+        }
     }
 
     /** Accepts 1-8 hex digits (RGB or ARGB). */
-    public static boolean isHexColor(Object value) {
-        return value instanceof String s && s.matches("(?i)[0-9a-f]{1,8}");
+    public static boolean isHexColor(String value) {
+        return value != null && HEX_COLOR.matcher(value).matches();
     }
 
     /** Parse an ARGB hex string to an int color, or transparent black if invalid. */
@@ -140,6 +266,237 @@ public final class Config {
         }
     }
 
+    private static BooleanValue bool(String category, String key, boolean defaultValue) {
+        final BooleanValue value = new BooleanValue(category, key, defaultValue);
+        ALL.add(value);
+        return value;
+    }
+
+    private static IntValue intVal(String category, String key, int defaultValue, int min, int max) {
+        final IntValue value = new IntValue(category, key, defaultValue, min, max);
+        ALL.add(value);
+        return value;
+    }
+
+    private static DoubleValue doubleVal(String category, String key, double defaultValue, double min, double max) {
+        final DoubleValue value = new DoubleValue(category, key, defaultValue, min, max);
+        ALL.add(value);
+        return value;
+    }
+
+    private static ColorValue color(String category, String key, String defaultValue) {
+        final ColorValue value = new ColorValue(category, key, defaultValue);
+        ALL.add(value);
+        return value;
+    }
+
     private Config() {
+    }
+
+    // `value` is mutated in place (rather than replaced via a new Config instance)
+    // because these are `static final` singletons read every frame by name
+    // (e.g. Config.HUD_ENABLED.get()); it is `volatile` and only ever written from
+    // the client thread (tick-driven load/reload), so this is safe despite the
+    // project's general immutability preference.
+    private abstract static class Value<T> {
+        final String category;
+        final String key;
+        final T defaultValue;
+        volatile T value;
+
+        Value(String category, String key, T defaultValue) {
+            this.category = category;
+            this.key = key;
+            this.defaultValue = defaultValue;
+            this.value = defaultValue;
+        }
+
+        public T get() {
+            return value;
+        }
+
+        /** The raw element for {@code key} within {@code root}'s {@code category} section, or null. */
+        JsonElement element(JsonObject root) {
+            final JsonElement section = root.get(category);
+            if (section == null || !section.isJsonObject()) {
+                return null;
+            }
+            return section.getAsJsonObject().get(key);
+        }
+
+        void warnInvalid(JsonElement element) {
+            LOGGER.warn("{}.{}: invalid value {}; falling back to default {}", category, key, element, defaultValue);
+        }
+
+        abstract void readFrom(JsonObject root);
+
+        abstract void writeTo(JsonObject root);
+
+        JsonObject section(JsonObject root) {
+            final JsonElement existing = root.get(category);
+            if (existing != null && existing.isJsonObject()) {
+                return existing.getAsJsonObject();
+            }
+            final JsonObject section = new JsonObject();
+            root.add(category, section);
+            return section;
+        }
+    }
+
+    public static final class BooleanValue extends Value<Boolean> {
+        BooleanValue(String category, String key, boolean defaultValue) {
+            super(category, key, defaultValue);
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
+                value = element.getAsBoolean();
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+        }
+
+        @Override
+        void writeTo(JsonObject root) {
+            section(root).addProperty(key, value);
+        }
+    }
+
+    public static final class IntValue extends Value<Integer> {
+        final int min;
+        final int max;
+
+        IntValue(String category, String key, int defaultValue, int min, int max) {
+            super(category, key, defaultValue);
+            this.min = min;
+            this.max = max;
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+                value = clamp(element.getAsInt());
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+        }
+
+        int clamp(int candidate) {
+            return Math.max(min, Math.min(max, candidate));
+        }
+
+        @Override
+        void writeTo(JsonObject root) {
+            section(root).addProperty(key, value);
+        }
+    }
+
+    public static final class DoubleValue extends Value<Double> {
+        final double min;
+        final double max;
+
+        DoubleValue(String category, String key, double defaultValue, double min, double max) {
+            super(category, key, defaultValue);
+            this.min = min;
+            this.max = max;
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+                value = clamp(element.getAsDouble());
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+        }
+
+        double clamp(double candidate) {
+            return Math.max(min, Math.min(max, candidate));
+        }
+
+        @Override
+        void writeTo(JsonObject root) {
+            section(root).addProperty(key, value);
+        }
+    }
+
+    /** A plain string setting (validated only for being a JSON string). */
+    public static class StringValue extends Value<String> {
+        StringValue(String category, String key, String defaultValue) {
+            super(category, key, defaultValue);
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+                value = element.getAsString();
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+        }
+
+        @Override
+        void writeTo(JsonObject root) {
+            section(root).addProperty(key, value);
+        }
+    }
+
+    /** An ARGB hex color string, with the parsed int cached to avoid re-parsing every frame. */
+    public static final class ColorValue extends StringValue {
+        private volatile int argb;
+
+        ColorValue(String category, String key, String defaultValue) {
+            super(category, key, defaultValue);
+            this.argb = parseColor(defaultValue);
+        }
+
+        /** The current value pre-parsed as an ARGB int; avoids re-parsing hex every frame. */
+        public int getArgb() {
+            return argb;
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                argb = parseColor(defaultValue);
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()
+                    && isHexColor(element.getAsString())) {
+                value = element.getAsString();
+                argb = parseColor(value);
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+            argb = parseColor(defaultValue);
+        }
     }
 }

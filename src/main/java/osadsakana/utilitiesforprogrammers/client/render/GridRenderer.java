@@ -8,7 +8,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -29,7 +29,7 @@ public final class GridRenderer {
     private static final double Y_OFFSET = 0.01D;
     private static final float LINE_WIDTH = 1.0F;
 
-    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
+    public static void onCollectSubmits(LevelRenderContext context) {
         if (!ToggleState.isEnabled() || !Config.GRID_ENABLED.get()) {
             return;
         }
@@ -51,11 +51,11 @@ public final class GridRenderer {
         final double axisLen = radius + 1;
 
         final Vec3 cam = mc.gameRenderer.mainCamera().position();
-        final PoseStack pose = event.getPoseStack();
+        final PoseStack pose = context.poseStack();
 
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);
-        event.getSubmitNodeCollector().submitCustomGeometry(pose, RenderTypes.lines(), (last, lines) -> {
+        context.submitNodeCollector().submitCustomGeometry(pose, RenderTypes.lines(), (last, lines) -> {
             // Faint 1-block grid.
             for (int x = minX; x <= maxX; x++) {
                 line(lines, last, x, y, minZ, x, y, maxZ, GRID_R, GRID_G, GRID_B, GRID_A);

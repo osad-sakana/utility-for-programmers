@@ -6,9 +6,9 @@
 
 **Minecraft の中でプログラミング学習を支援する、クライアントサイド専用 MOD**
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.10-62B47A)](https://www.minecraft.net/)
-[![NeoForge](https://img.shields.io/badge/NeoForge-21.10.x-F16436)](https://neoforged.net/)
-[![Java](https://img.shields.io/badge/Java-21-007396)](https://adoptium.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-26.2-62B47A)](https://www.minecraft.net/)
+[![Fabric](https://img.shields.io/badge/Fabric_Loader-0.19.3-DBB69B)](https://fabricmc.net/)
+[![Java](https://img.shields.io/badge/Java-25-007396)](https://adoptium.net/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 座標・方角の可視化、ブロック更新のハイライト、原点基準の座標軸グリッド、
@@ -37,7 +37,7 @@
 
 ## ⌨️ 操作キー
 
-初期割り当てはバニラ 1.21.10 で**未使用のキー**を選んでいるため、通常の操作と競合しません。
+初期割り当てはバニラで**未使用のキー**を選んでいるため、通常の操作と競合しません。
 すべて **オプション > 操作設定** から変更できます。
 
 | キー | 機能 |
@@ -61,18 +61,29 @@
 各機能の有効/無効や、ハイライトの色・表示時間・グリッドの広さなどは設定ファイルで調整できます。
 
 ```
-config/utilitiesforprogrammers-client.toml
+config/utilitiesforprogrammers-client.json
 ```
 
-ゲーム内の設定画面、またはファイル編集で変更でき、**再起動なし**で反映されます。
+ファイルを直接編集して変更でき、**再起動なし**で反映されます（1秒間隔でファイルの更新を検知）。
+範囲外の値は自動的に上限/下限へ丸められます（エラーにはなりません）。
+
+| キー | 値域 | 既定値 |
+| --- | --- | --- |
+| `highlight.displaySeconds` | 0.5 〜 120.0 | 8.0 |
+| `highlight.radius` | 1 〜 128 | 32 |
+| `grid.radius` | 1 〜 32 | 8 |
+| `targetHighlight.outlineColorARGB` | 1〜8桁の16進数（RGB/ARGB） | `FFFFEE00` |
+| `targetHighlight.fillAlpha` | 0 〜 255 | 48 |
+| `focusBorder.thickness` | 1 〜 32 | 4 |
+| `focusBorder.focusedColorARGB` / `unfocusedColorARGB` | 1〜8桁の16進数（RGB/ARGB） | `CC55FF55` / `CCFF5555` |
 
 ---
 
 ## 📦 動作要件
 
-- Minecraft **1.21.10**
-- NeoForge **21.10.x**
-- JDK **21**（ソースからビルドする場合）
+- Minecraft **26.2**
+- Fabric Loader **0.19.3** 以上 + Fabric API
+- JDK **25**（ソースからビルドする場合）
 
 ---
 

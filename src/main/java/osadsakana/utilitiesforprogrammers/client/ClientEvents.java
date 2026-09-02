@@ -1,54 +1,33 @@
 package osadsakana.utilitiesforprogrammers.client;
 
-import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
-import osadsakana.utilitiesforprogrammers.client.hud.FocusBorderOverlay;
+import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.hud.HudData;
-import osadsakana.utilitiesforprogrammers.client.hud.HudOverlay;
 import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
 
 /**
- * Central client-side event wiring: key-mapping/GUI-layer registration on the mod
- * bus, and per-tick handling (key presses + HUD snapshot capture) on the game bus.
+ * Central client-side per-tick handling: key presses, HUD snapshot capture and
+ * config hot-reload polling. Registered on {@code ClientTickEvents.END_CLIENT_TICK}.
  */
 public final class ClientEvents {
 
-    private static final Identifier HUD_LAYER =
-            Identifier.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "hud");
-    private static final Identifier FOCUS_BORDER_LAYER =
-            Identifier.fromNamespaceAndPath(UtilitiesForProgrammers.MOD_ID, "focus_border");
+    /** Re-check the config file's modification time once a second (20 ticks). */
+    private static final int CONFIG_POLL_INTERVAL_TICKS = 20;
 
     private static boolean togglesInitialized = false;
+    private static int ticksSinceConfigPoll = 0;
 
-    // ----- mod-bus registration -----------------------------------------------
-
-    public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
-        event.registerCategory(KeyBindings.CATEGORY);
-        for (KeyMapping mapping : KeyBindings.all()) {
-            event.register(mapping);
-        }
-    }
-
-    public static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAboveAll(HUD_LAYER, new HudOverlay());
-        event.registerAboveAll(FOCUS_BORDER_LAYER, new FocusBorderOverlay());
-    }
-
-    // ----- game-bus per-tick handling -----------------------------------------
-
-    public static void onClientTickPost(ClientTickEvent.Post event) {
-        final Minecraft mc = Minecraft.getInstance();
-
+    public static void onClientTickPost(Minecraft mc) {
         if (!togglesInitialized) {
             // Keep rendering when the window loses focus (don't auto-pause).
             WindowController.disablePauseOnLostFocus(mc);
             togglesInitialized = true;
+        }
+
+        if (++ticksSinceConfigPoll >= CONFIG_POLL_INTERVAL_TICKS) {
+            ticksSinceConfigPoll = 0;
+            Config.reloadIfChanged();
         }
 
         handleKeys(mc);
