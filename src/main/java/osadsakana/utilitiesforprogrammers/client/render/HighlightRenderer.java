@@ -11,7 +11,8 @@ import net.minecraft.util.ARGB;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.FreezeClock;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
@@ -22,8 +23,8 @@ import osadsakana.utilitiesforprogrammers.client.tracking.BlockChangeTracker;
  * changed block. Boxes are colored by placement order: newest = red, fading
  * through to blue, with opacity fading to zero as a change approaches its expiry.
  *
- * <p>Geometry is submitted during {@link SubmitCustomGeometryEvent}, built in
- * camera-relative world space, matching the vanilla debug/outline renderers.
+ * <p>Geometry is submitted during {@link LevelRenderEvents#COLLECT_SUBMITS}, built
+ * in camera-relative world space, matching the vanilla debug/outline renderers.
  */
 public final class HighlightRenderer {
 
@@ -31,7 +32,7 @@ public final class HighlightRenderer {
     private static final float FILL_ALPHA_SCALE = 0.22F;
     private static final float OUTLINE_WIDTH = 1.0F;
 
-    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
+    public static void onCollectSubmits(LevelRenderContext context) {
         if (!ToggleState.isEnabled() || !Config.HIGHLIGHT_ENABLED.get()) {
             return;
         }
@@ -49,8 +50,8 @@ public final class HighlightRenderer {
         final boolean drawFill = Config.HIGHLIGHT_FILL.get();
 
         final Vec3 cam = mc.gameRenderer.mainCamera().position();
-        final PoseStack pose = event.getPoseStack();
-        final var submitNodeCollector = event.getSubmitNodeCollector();
+        final PoseStack pose = context.poseStack();
+        final var submitNodeCollector = context.submitNodeCollector();
 
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);

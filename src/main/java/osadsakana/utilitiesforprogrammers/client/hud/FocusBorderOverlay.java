@@ -3,7 +3,7 @@ package osadsakana.utilitiesforprogrammers.client.hud;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.neoforged.neoforge.client.gui.GuiLayer;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -16,10 +16,10 @@ import osadsakana.utilitiesforprogrammers.client.ToggleState;
  * <p>Colors, thickness and which states show a border are configurable.
  * Note: like other HUD layers, it is not drawn while a full screen/menu is open.
  */
-public final class FocusBorderOverlay implements GuiLayer {
+public final class FocusBorderOverlay implements HudElement {
 
     @Override
-    public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (!ToggleState.isEnabled() || !Config.FOCUS_BORDER_ENABLED.get()) {
             return;
         }

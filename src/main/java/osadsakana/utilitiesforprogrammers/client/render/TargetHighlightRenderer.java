@@ -12,7 +12,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -26,7 +26,7 @@ public final class TargetHighlightRenderer {
 
     private static final float OUTLINE_WIDTH = 1.0F;
 
-    public static void onSubmitCustomGeometry(SubmitCustomGeometryEvent event) {
+    public static void onCollectSubmits(LevelRenderContext context) {
         if (!ToggleState.isEnabled() || !Config.TARGET_HL_ENABLED.get()) {
             return;
         }
@@ -48,8 +48,8 @@ public final class TargetHighlightRenderer {
 
         final int outlineColor = Config.parseColor(Config.TARGET_HL_COLOR.get());
         final Vec3 cam = mc.gameRenderer.mainCamera().position();
-        final PoseStack pose = event.getPoseStack();
-        final var submitNodeCollector = event.getSubmitNodeCollector();
+        final PoseStack pose = context.poseStack();
+        final var submitNodeCollector = context.submitNodeCollector();
 
         pose.pushPose();
         pose.translate(-cam.x, -cam.y, -cam.z);

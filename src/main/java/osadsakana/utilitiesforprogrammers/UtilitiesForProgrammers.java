@@ -1,12 +1,16 @@
 package osadsakana.utilitiesforprogrammers;
 
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.neoforge.common.NeoForge;
+import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.resources.Identifier;
 import osadsakana.utilitiesforprogrammers.client.ClientEvents;
+import osadsakana.utilitiesforprogrammers.client.KeyBindings;
+import osadsakana.utilitiesforprogrammers.client.hud.FocusBorderOverlay;
+import osadsakana.utilitiesforprogrammers.client.hud.HudOverlay;
 import osadsakana.utilitiesforprogrammers.client.render.GridRenderer;
 import osadsakana.utilitiesforprogrammers.client.render.HighlightRenderer;
 import osadsakana.utilitiesforprogrammers.client.render.TargetHighlightRenderer;
@@ -14,30 +18,38 @@ import osadsakana.utilitiesforprogrammers.client.render.TargetHighlightRenderer;
 /**
  * Entry point of the UtilitiesForProgrammers mod.
  *
- * <p>This mod is client-side only ({@link Dist#CLIENT}); it registers nothing on
- * the logical server and therefore can be used when joining vanilla or modded
- * servers that do not have it installed.
+ * <p>This mod is client-side only ({@code "environment": "client"} in
+ * {@code fabric.mod.json}); it registers nothing on the logical server and
+ * therefore can be used when joining vanilla or modded servers that do not have it
+ * installed.
  */
-@Mod(value = UtilitiesForProgrammers.MOD_ID, dist = Dist.CLIENT)
-public class UtilitiesForProgrammers {
+public final class UtilitiesForProgrammers implements ClientModInitializer {
 
     public static final String MOD_ID = "utilitiesforprogrammers";
 
-    public UtilitiesForProgrammers(IEventBus modEventBus, ModContainer modContainer) {
-        // Persisted client configuration (config/utilitiesforprogrammers-client.toml).
-        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.SPEC);
+    private static final Identifier HUD_LAYER =
+            Identifier.fromNamespaceAndPath(MOD_ID, "hud");
+    private static final Identifier FOCUS_BORDER_LAYER =
+            Identifier.fromNamespaceAndPath(MOD_ID, "focus_border");
 
-        // Mod-bus: key mappings and the HUD GUI layer.
-        modEventBus.addListener(ClientEvents::onRegisterKeyMappings);
-        modEventBus.addListener(ClientEvents::onRegisterGuiLayers);
+    @Override
+    public void onInitializeClient() {
+        // Persisted client configuration (config/utilitiesforprogrammers-client.json).
+        Config.load();
 
-        // Game-bus: per-tick key handling and HUD snapshot capture.
-        NeoForge.EVENT_BUS.addListener(ClientEvents::onClientTickPost);
-        // Game-bus: 3D block-update highlight rendering.
-        NeoForge.EVENT_BUS.addListener(HighlightRenderer::onSubmitCustomGeometry);
-        // Game-bus: relative-coordinate ground grid rendering.
-        NeoForge.EVENT_BUS.addListener(GridRenderer::onSubmitCustomGeometry);
-        // Game-bus: stronger highlight of the looking-at block.
-        NeoForge.EVENT_BUS.addListener(TargetHighlightRenderer::onSubmitCustomGeometry);
+        for (KeyMapping mapping : KeyBindings.all()) {
+            KeyMappingHelper.registerKeyMapping(mapping);
+        }
+
+        HudElementRegistry.addLast(HUD_LAYER, new HudOverlay());
+        HudElementRegistry.addLast(FOCUS_BORDER_LAYER, new FocusBorderOverlay());
+
+        // Per-tick key handling, HUD snapshot capture and config hot-reload polling.
+        ClientTickEvents.END_CLIENT_TICK.register(ClientEvents::onClientTickPost);
+
+        // World-space geometry submission (block-update highlight, target highlight, grid).
+        LevelRenderEvents.COLLECT_SUBMITS.register(HighlightRenderer::onCollectSubmits);
+        LevelRenderEvents.COLLECT_SUBMITS.register(GridRenderer::onCollectSubmits);
+        LevelRenderEvents.COLLECT_SUBMITS.register(TargetHighlightRenderer::onCollectSubmits);
     }
 }

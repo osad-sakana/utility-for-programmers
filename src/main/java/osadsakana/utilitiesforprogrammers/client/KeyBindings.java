@@ -3,7 +3,6 @@ package osadsakana.utilitiesforprogrammers.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.resources.Identifier;
-import net.neoforged.neoforge.client.settings.KeyConflictContext;
 import org.lwjgl.glfw.GLFW;
 import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
 
@@ -15,9 +14,10 @@ import osadsakana.utilitiesforprogrammers.UtilitiesForProgrammers;
  * the mod on/off, K toggles the freeze / external-operation mode. Both can be
  * reassigned in Options &gt; Controls.
  *
- * <p>In 1.21.10 a key binding category is a {@link KeyMapping.Category} object
- * (no longer a translation-key string); it is registered via
- * {@code RegisterKeyMappingsEvent#registerCategory}.
+ * <p>A key binding category is a {@link KeyMapping.Category} object (no longer a
+ * translation-key string); each {@link KeyMapping} carries its category directly,
+ * so registering the mapping via {@code KeyMappingHelper.registerKeyMapping} is
+ * enough for it to show up under this category in Options &gt; Controls.
  */
 public final class KeyBindings {
 
@@ -34,7 +34,6 @@ public final class KeyBindings {
     private static KeyMapping make(String descriptionId, int defaultKey) {
         return new KeyMapping(
                 descriptionId,
-                KeyConflictContext.IN_GAME,
                 InputConstants.Type.KEYSYM,
                 defaultKey,
                 CATEGORY);

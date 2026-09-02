@@ -10,7 +10,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.client.gui.GuiLayer;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import osadsakana.utilitiesforprogrammers.Config;
 import osadsakana.utilitiesforprogrammers.client.ToggleState;
 
@@ -21,7 +21,7 @@ import osadsakana.utilitiesforprogrammers.client.ToggleState;
  * <p>All text is localized through translation keys (see {@code lang/*.json}) and
  * the block's own {@code getName()}, so the HUD follows the game language.
  */
-public final class HudOverlay implements GuiLayer {
+public final class HudOverlay implements HudElement {
 
     // Translation keys.
     private static final String K_COORDS = "hud.utilitiesforprogrammers.coords";
@@ -43,7 +43,7 @@ public final class HudOverlay implements GuiLayer {
     }
 
     @Override
-    public void render(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+    public void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (!ToggleState.isEnabled() || !Config.HUD_ENABLED.get()) {
             return;
         }

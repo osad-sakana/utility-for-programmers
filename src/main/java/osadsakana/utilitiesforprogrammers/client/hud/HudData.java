@@ -1,6 +1,6 @@
 package osadsakana.utilitiesforprogrammers.client.hud;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;

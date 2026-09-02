@@ -5,6 +5,21 @@
 フォーマットは [Keep a Changelog](https://keepachangelog.com/ja/1.1.0/) に準拠し、
 バージョニングは [Semantic Versioning](https://semver.org/lang/ja/) に従います。
 
+## [2.0.0] - 2026-09-02
+
+MOD ローダーを NeoForge から Fabric へ完全移行（破壊的変更）。Minecraft バージョンは 26.2 のまま。
+
+### Changed
+- MOD ローダーを NeoForge 26.2.0.28-beta → **Fabric Loader 0.19.3**（+ Fabric API）に変更。
+- ビルドシステムを `net.neoforged.moddev` Gradle プラグインから **Fabric Loom**（`net.fabricmc.fabric-loom`）に変更。
+- `net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent` を Fabric API の `LevelRenderEvents.COLLECT_SUBMITS`（`LevelRenderContext`）に置き換え。
+- `RegisterKeyMappingsEvent` → `KeyMappingHelper.registerKeyMapping`、`RegisterGuiLayersEvent`/`GuiLayer` → `HudElementRegistry`/`HudElement`、`ClientTickEvent.Post` → `ClientTickEvents.END_CLIENT_TICK` に置き換え。
+- 設定ファイルを `config/utilitiesforprogrammers-client.toml`（NeoForge `ModConfigSpec`）から **`config/utilitiesforprogrammers-client.json`**（自前実装、1秒間隔のファイル変更検知でホットリロード）に変更。
+- `neoforge.mods.toml` を `fabric.mod.json` に置き換え。
+
+### Removed
+- NeoForge のサポートを終了。既存の NeoForge 版（1.1.0 以前）は今後アップデートされません。
+
 ## [1.1.0] - 2026-07-23
 
 Minecraft 26.2（Chaos Cubed）/ NeoForge 26.2.0.28-beta 対応。

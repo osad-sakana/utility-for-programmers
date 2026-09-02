@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Convenience launcher for the development Minecraft client (NeoForge 1.21.10)
+# Convenience launcher for the development Minecraft client (Fabric 26.2)
 # with this mod loaded from source.
 #
 #   ./run-client.sh
@@ -11,12 +11,12 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Ensure JAVA_HOME points at a JDK 21 if it isn't already set.
+# Ensure JAVA_HOME points at a JDK 25 if it isn't already set.
 if [ -z "${JAVA_HOME:-}" ]; then
-  if [ -d /opt/homebrew/opt/openjdk@21 ]; then
-    export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+  if [ -d /opt/homebrew/opt/openjdk@25 ]; then
+    export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   elif command -v /usr/libexec/java_home >/dev/null 2>&1; then
-    export JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null || true)"
+    export JAVA_HOME="$(/usr/libexec/java_home -v 25 2>/dev/null || true)"
   fi
 fi
 echo "Using JAVA_HOME=${JAVA_HOME:-<unset>}"
