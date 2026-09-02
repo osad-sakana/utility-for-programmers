@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
@@ -35,13 +34,17 @@ import net.fabricmc.loader.api.FabricLoader;
  *
  * <p>Note on ranges: {@code radius}/{@code fillAlpha}/etc. are silently clamped to
  * the ranges documented in {@code README.md} rather than rejected, so a hand-edited
- * out-of-range value never breaks loading.
+ * out-of-range value never breaks loading. A key that is present but invalid (wrong
+ * type, bad hex string, ...) falls back to its default and logs a warning; a key
+ * that is simply absent (e.g. an older config file, before a new option was added)
+ * falls back silently.
  */
 public final class Config {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("UtilitiesForProgrammers/Config");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "utilitiesforprogrammers-client.json";
+    private static final Pattern HEX_COLOR = Pattern.compile("(?i)[0-9a-f]{1,8}");
     private static final List<Value<?>> ALL = new ArrayList<>();
 
     private static long lastLoadedModifiedMillis = -1L;
@@ -74,8 +77,8 @@ public final class Config {
     public static final BooleanValue TARGET_HL_ENABLED =
             bool("targetHighlight", "enabled", true);
     /** Outline color of the looking-at block, ARGB hex (e.g. {@code FFFFEE00}). */
-    public static final StringValue TARGET_HL_COLOR =
-            str("targetHighlight", "outlineColorARGB", "FFFFEE00", Config::isHexColor);
+    public static final ColorValue TARGET_HL_COLOR =
+            color("targetHighlight", "outlineColorARGB", "FFFFEE00");
     public static final BooleanValue TARGET_HL_FILL =
             bool("targetHighlight", "drawFill", true);
     /** Alpha (0-255) of the translucent fill for the looking-at block. */
@@ -92,19 +95,19 @@ public final class Config {
     public static final IntValue FOCUS_BORDER_THICKNESS =
             intVal("focusBorder", "thickness", 4, 1, 32);
     /** Border color while focused, as ARGB hex (e.g. {@code CC55FF55}). */
-    public static final StringValue FOCUS_BORDER_COLOR_FOCUSED =
-            str("focusBorder", "focusedColorARGB", "CC55FF55", Config::isHexColor);
+    public static final ColorValue FOCUS_BORDER_COLOR_FOCUSED =
+            color("focusBorder", "focusedColorARGB", "CC55FF55");
     /** Border color while unfocused, as ARGB hex (e.g. {@code CCFF5555}). */
-    public static final StringValue FOCUS_BORDER_COLOR_UNFOCUSED =
-            str("focusBorder", "unfocusedColorARGB", "CCFF5555", Config::isHexColor);
+    public static final ColorValue FOCUS_BORDER_COLOR_UNFOCUSED =
+            color("focusBorder", "unfocusedColorARGB", "CCFF5555");
 
     private static Path configPath() {
         return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
     }
 
     /**
-     * Loads the config from disk, creating it with defaults only if the file is
-     * absent. Call once at startup.
+     * Loads the config from disk, creating it with defaults if the file is absent.
+     * Call once at startup.
      */
     public static void load() {
         load(configPath());
@@ -119,14 +122,15 @@ public final class Config {
      * {@link #load()}, parameterized on the file path so it can be exercised in
      * unit tests without a running {@link FabricLoader} instance.
      *
-     * <p>An existing file is never overwritten here, even if it fails to parse:
-     * clobbering a hand-edited file with defaults on a typo would destroy the
-     * user's settings with no way back.
+     * <p>A successful read is always followed by a write-back, so that keys added
+     * by a newer mod version get merged into an older user's file. A file that
+     * fails to parse is left completely untouched (never overwritten with
+     * defaults) so a hand-edit typo never destroys existing settings.
      */
     static void load(Path path) {
-        if (Files.exists(path)) {
-            readFromDisk(path);
-        } else {
+        if (!Files.exists(path)) {
+            writeToDisk(path);
+        } else if (readFromDisk(path)) {
             writeToDisk(path);
         }
     }
@@ -146,11 +150,22 @@ public final class Config {
         }
     }
 
-    static void readFromDisk(Path path) {
+    /**
+     * Reads {@code path} into the registered {@link Value}s.
+     *
+     * @return {@code true} if the file parsed as a JSON object and its values were
+     *         applied; {@code false} on any failure (missing/malformed file, or a
+     *         valid JSON document that isn't an object). Either way,
+     *         {@code lastLoadedModifiedMillis} is advanced so a persistently broken
+     *         file is not re-parsed (and re-logged) on every poll — only after it
+     *         next changes.
+     */
+    static boolean readFromDisk(Path path) {
         if (!Files.exists(path)) {
             lastLoadedModifiedMillis = -1L;
-            return;
+            return false;
         }
+        boolean applied = false;
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             final JsonElement root = JsonParser.parseReader(reader);
             if (root != null && root.isJsonObject()) {
@@ -158,13 +173,21 @@ public final class Config {
                 for (Value<?> value : ALL) {
                     value.readFrom(rootObject);
                 }
+                applied = true;
+            } else {
+                LOGGER.error("{} does not contain a JSON object; keeping current values", path);
             }
-            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
         } catch (IOException | RuntimeException e) {
             // Keep current (default or previously loaded) values on a malformed file;
             // deliberately does NOT write, so the user's file is left intact to fix.
             LOGGER.error("Failed to read {}; keeping current values and leaving the file untouched", path, e);
         }
+        try {
+            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
+        } catch (IOException ignored) {
+            // If even the mtime can't be read, the next poll will simply retry.
+        }
+        return applied;
     }
 
     static void writeToDisk(Path path) {
@@ -172,22 +195,30 @@ public final class Config {
         for (Value<?> value : ALL) {
             value.writeTo(root);
         }
+        Path tmp = null;
         try {
             Files.createDirectories(path.toAbsolutePath().getParent());
-            final Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
+            tmp = path.resolveSibling(path.getFileName() + ".tmp");
             try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
                 GSON.toJson(root, writer);
             }
             // Atomic swap so a crash mid-write can never leave a truncated/corrupt file.
             Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            tmp = null;
             lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
         } catch (IOException e) {
             // Non-fatal: the mod continues to run with in-memory defaults.
             LOGGER.error("Failed to write {}; continuing with in-memory values", path, e);
+        } finally {
+            if (tmp != null) {
+                try {
+                    Files.deleteIfExists(tmp);
+                } catch (IOException ignored) {
+                    // Best-effort cleanup; a leftover .tmp is harmless and overwritten next time.
+                }
+            }
         }
     }
-
-    private static final Pattern HEX_COLOR = Pattern.compile("(?i)[0-9a-f]{1,8}");
 
     /** Accepts 1-8 hex digits (RGB or ARGB). */
     public static boolean isHexColor(String value) {
@@ -221,8 +252,8 @@ public final class Config {
         return value;
     }
 
-    private static StringValue str(String category, String key, String defaultValue, Predicate<String> validator) {
-        final StringValue value = new StringValue(category, key, defaultValue, validator);
+    private static ColorValue color(String category, String key, String defaultValue) {
+        final ColorValue value = new ColorValue(category, key, defaultValue);
         ALL.add(value);
         return value;
     }
@@ -252,6 +283,19 @@ public final class Config {
             return value;
         }
 
+        /** The raw element for {@code key} within {@code root}'s {@code category} section, or null. */
+        JsonElement element(JsonObject root) {
+            final JsonElement section = root.get(category);
+            if (section == null || !section.isJsonObject()) {
+                return null;
+            }
+            return section.getAsJsonObject().get(key);
+        }
+
+        void warnInvalid(JsonElement element) {
+            LOGGER.warn("{}.{}: invalid value {}; falling back to default {}", category, key, element, defaultValue);
+        }
+
         abstract void readFrom(JsonObject root);
 
         abstract void writeTo(JsonObject root);
@@ -274,14 +318,16 @@ public final class Config {
 
         @Override
         void readFrom(JsonObject root) {
-            final JsonElement section = root.get(category);
-            if (section != null && section.isJsonObject()) {
-                final JsonElement element = section.getAsJsonObject().get(key);
-                if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
-                    value = element.getAsBoolean();
-                    return;
-                }
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
             }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
+                value = element.getAsBoolean();
+                return;
+            }
+            warnInvalid(element);
             value = defaultValue;
         }
 
@@ -303,15 +349,16 @@ public final class Config {
 
         @Override
         void readFrom(JsonObject root) {
-            final JsonElement section = root.get(category);
-            if (section != null && section.isJsonObject()) {
-                final JsonElement element = section.getAsJsonObject().get(key);
-                if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
-                    final int candidate = element.getAsInt();
-                    value = clamp(candidate);
-                    return;
-                }
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
             }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+                value = clamp(element.getAsInt());
+                return;
+            }
+            warnInvalid(element);
             value = defaultValue;
         }
 
@@ -337,15 +384,47 @@ public final class Config {
 
         @Override
         void readFrom(JsonObject root) {
-            final JsonElement section = root.get(category);
-            if (section != null && section.isJsonObject()) {
-                final JsonElement element = section.getAsJsonObject().get(key);
-                if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
-                    final double candidate = element.getAsDouble();
-                    value = Math.max(min, Math.min(max, candidate));
-                    return;
-                }
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
             }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+                value = clamp(element.getAsDouble());
+                return;
+            }
+            warnInvalid(element);
+            value = defaultValue;
+        }
+
+        double clamp(double candidate) {
+            return Math.max(min, Math.min(max, candidate));
+        }
+
+        @Override
+        void writeTo(JsonObject root) {
+            section(root).addProperty(key, value);
+        }
+    }
+
+    /** A plain string setting (validated only for being a JSON string). */
+    public static class StringValue extends Value<String> {
+        StringValue(String category, String key, String defaultValue) {
+            super(category, key, defaultValue);
+        }
+
+        @Override
+        void readFrom(JsonObject root) {
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                return;
+            }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+                value = element.getAsString();
+                return;
+            }
+            warnInvalid(element);
             value = defaultValue;
         }
 
@@ -355,14 +434,12 @@ public final class Config {
         }
     }
 
-    public static final class StringValue extends Value<String> {
-        final Predicate<String> validator;
-        /** Cached {@link Config#parseColor(String)} of {@link #value}, refreshed alongside it. */
+    /** An ARGB hex color string, with the parsed int cached to avoid re-parsing every frame. */
+    public static final class ColorValue extends StringValue {
         private volatile int argb;
 
-        StringValue(String category, String key, String defaultValue, Predicate<String> validator) {
+        ColorValue(String category, String key, String defaultValue) {
             super(category, key, defaultValue);
-            this.validator = validator;
             this.argb = parseColor(defaultValue);
         }
 
@@ -373,25 +450,21 @@ public final class Config {
 
         @Override
         void readFrom(JsonObject root) {
-            final JsonElement section = root.get(category);
-            if (section != null && section.isJsonObject()) {
-                final JsonElement element = section.getAsJsonObject().get(key);
-                if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-                    final String candidate = element.getAsString();
-                    if (validator.test(candidate)) {
-                        value = candidate;
-                        argb = parseColor(candidate);
-                        return;
-                    }
-                }
+            final JsonElement element = element(root);
+            if (element == null) {
+                value = defaultValue;
+                argb = parseColor(defaultValue);
+                return;
             }
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()
+                    && isHexColor(element.getAsString())) {
+                value = element.getAsString();
+                argb = parseColor(value);
+                return;
+            }
+            warnInvalid(element);
             value = defaultValue;
             argb = parseColor(defaultValue);
-        }
-
-        @Override
-        void writeTo(JsonObject root) {
-            section(root).addProperty(key, value);
         }
     }
 }

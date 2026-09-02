@@ -32,13 +32,10 @@ else
   echo "No JDK 25 found to set JAVA_HOME; falling back to PATH's java (Gradle will auto-provision a JDK 25 toolchain for the build itself)."
 fi
 
-# Prefer the locally extracted Gradle (the wrapper's distribution download is
-# blocked in some networks); fall back to the Gradle wrapper otherwise.
-if [ -x .gradle-dist/gradle-8.12/bin/gradle ]; then
-  GRADLE=.gradle-dist/gradle-8.12/bin/gradle
-else
-  GRADLE=./gradlew
-fi
+# Always use the Gradle wrapper: Fabric Loom requires Gradle >= 9.5 (see
+# gradle/wrapper/gradle-wrapper.properties), so an older locally-extracted
+# Gradle (e.g. a pre-Fabric-migration .gradle-dist/ leftover) will not work.
+GRADLE=./gradlew
 
 echo "Launching Minecraft client (Ctrl+C in this terminal to stop)..."
 exec "$GRADLE" runClient "$@"

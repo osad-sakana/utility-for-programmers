@@ -19,6 +19,7 @@ MOD ローダーを NeoForge から Fabric へ完全移行（破壊的変更）�
 
 ### Removed
 - NeoForge のサポートを終了。既存の NeoForge 版（1.1.0 以前）は今後アップデートされません。
+- 旧 `config/utilitiesforprogrammers-client.toml` の内容は自動移行されません。既存ユーザーは新しい `config/utilitiesforprogrammers-client.json` にデフォルト値で作り直され、カスタム設定は手動での再設定が必要です。
 
 ## [1.1.0] - 2026-07-23
 
@@ -43,5 +44,6 @@ Minecraft 26.2（Chaos Cubed）/ NeoForge 26.2.0.28-beta 対応。
 - **操作キー** — `H` で全機能を一括 ON/OFF、`K` で外部操作モード（マウス解放＋移動停止＋クリック無効化＋HUD/ハイライトの静止）。
 - **設定** — `config/utilitiesforprogrammers-client.toml` で各機能・色・表示時間などを再起動なしで調整可能。
 
-[1.1.0]: https://github.com/osad-sakana/utilitiesforprogrammers/releases/tag/v1.1.0
-[1.0.0]: https://github.com/osad-sakana/utilitiesforprogrammers/releases/tag/v1.0.0
+[2.0.0]: https://github.com/osad-sakana/utility-for-programmers/releases/tag/v2.0.0
+[1.1.0]: https://github.com/osad-sakana/utility-for-programmers/releases/tag/v1.1.0
+[1.0.0]: https://github.com/osad-sakana/utility-for-programmers/releases/tag/v1.0.0

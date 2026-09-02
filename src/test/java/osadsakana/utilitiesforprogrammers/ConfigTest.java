@@ -1,6 +1,7 @@
 package osadsakana.utilitiesforprogrammers;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,7 +10,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -17,16 +22,27 @@ import org.junit.jupiter.api.io.TempDir;
  * Exercises {@link Config}'s hand-rolled JSON store without a running
  * {@link net.fabricmc.loader.api.FabricLoader} instance, via the
  * package-private {@code Path}-parameterized overloads.
+ *
+ * <p>{@link Config}'s {@code Value}s are {@code static final} singletons shared
+ * across all test methods in this class, so every test resets them to defaults in
+ * {@link #resetToDefaults()} rather than assuming a clean slate.
  */
 class ConfigTest {
 
     @TempDir
     Path tempDir;
 
+    @BeforeEach
+    void resetToDefaults() throws IOException {
+        // An empty object leaves every registered Value with no matching element,
+        // so readFrom() falls each one back to its default.
+        Config.readFromDisk(writeJson("{}"));
+    }
+
     @Test
     void intValueClampsAboveMax() throws IOException {
         final Path path = writeJson("{\"highlight\":{\"radius\":999}}");
-        Config.readFromDisk(path);
+        assertTrue(Config.readFromDisk(path));
         assertEquals(128, Config.HIGHLIGHT_RADIUS.get());
     }
 
@@ -38,7 +54,21 @@ class ConfigTest {
     }
 
     @Test
-    void stringValueRejectsBadHexAndFallsBackToDefault() throws IOException {
+    void doubleValueClampsToRange() throws IOException {
+        final Path path = writeJson("{\"highlight\":{\"displaySeconds\":999.0}}");
+        Config.readFromDisk(path);
+        assertEquals(120.0, Config.HIGHLIGHT_SECONDS.get());
+    }
+
+    @Test
+    void booleanValueRoundTrips() throws IOException {
+        final Path path = writeJson("{\"hud\":{\"enabled\":false}}");
+        Config.readFromDisk(path);
+        assertFalse(Config.HUD_ENABLED.get());
+    }
+
+    @Test
+    void colorValueRejectsBadHexAndFallsBackToDefault() throws IOException {
         final Path path = writeJson("{\"targetHighlight\":{\"outlineColorARGB\":\"not-hex\"}}");
         Config.readFromDisk(path);
         assertEquals("FFFFEE00", Config.TARGET_HL_COLOR.get());
@@ -46,11 +76,27 @@ class ConfigTest {
     }
 
     @Test
-    void stringValueAcceptsValidHexAndCachesArgb() throws IOException {
+    void colorValueAcceptsValidHexAndCachesArgb() throws IOException {
         final Path path = writeJson("{\"targetHighlight\":{\"outlineColorARGB\":\"AABBCCDD\"}}");
         Config.readFromDisk(path);
         assertEquals("AABBCCDD", Config.TARGET_HL_COLOR.get());
         assertEquals(Config.parseColor("AABBCCDD"), Config.TARGET_HL_COLOR.getArgb());
+    }
+
+    @Test
+    void parseColorHandlesFullRangeAndInvalidInput() {
+        assertEquals(-1, Config.parseColor("FFFFFFFF"));
+        assertEquals(0, Config.parseColor("not-hex"));
+        assertTrue(Config.isHexColor("FFFFFFFF"));
+        assertTrue(Config.isHexColor("F"));
+        assertFalse(Config.isHexColor("123456789")); // 9 digits: too long
+        assertFalse(Config.isHexColor(null));
+    }
+
+    @Test
+    void readFromDiskTreatsNonObjectJsonAsFailure() throws IOException {
+        final Path path = writeJson("[1,2,3]");
+        assertFalse(Config.readFromDisk(path));
     }
 
     @Test
@@ -73,13 +119,65 @@ class ConfigTest {
     }
 
     @Test
-    void loadWritesDefaultsOnlyWhenFileIsAbsent() throws IOException {
+    void loadWritesDefaultsWhenFileIsAbsent() throws IOException {
         final Path path = tempDir.resolve("absent.json");
         assertFalse(Files.exists(path));
 
         Config.load(path);
 
         assertTrue(Files.exists(path));
+        final JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        assertEquals(32, root.getAsJsonObject("highlight").get("radius").getAsInt());
+        assertEquals("FFFFEE00", root.getAsJsonObject("targetHighlight").get("outlineColorARGB").getAsString());
+        assertFalse(Files.exists(path.resolveSibling(path.getFileName() + ".tmp")));
+    }
+
+    @Test
+    void loadMergesNewlyRegisteredKeysIntoAnExistingFileOnSuccessfulParse() throws IOException {
+        // Simulate an older config file that only has one key set.
+        final Path path = writeJson("{\"highlight\":{\"radius\":77}}");
+
+        Config.load(path);
+
+        final JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        // The explicitly-set value survives the merge...
+        assertEquals(77, root.getAsJsonObject("highlight").get("radius").getAsInt());
+        // ...and every other registered key is now present too, with its default.
+        assertTrue(root.has("hud"));
+        assertTrue(root.has("grid"));
+    }
+
+    @Test
+    void reloadIfChangedNoOpWhenFileAbsent() {
+        final Path path = tempDir.resolve("nope.json");
+        assertDoesNotThrow(() -> Config.reloadIfChanged(path));
+    }
+
+    @Test
+    void reloadIfChangedSkipsWhenMtimeUnchanged() throws IOException {
+        final Path path = writeJson("{\"highlight\":{\"radius\":10}}");
+        // Unconditional first read establishes the baseline mtime for this file.
+        Config.readFromDisk(path);
+        assertEquals(10, Config.HIGHLIGHT_RADIUS.get());
+
+        // Mutate in-memory only, bypassing the file, so a real reload would be observable.
+        Config.HIGHLIGHT_RADIUS.value = 999;
+
+        Config.reloadIfChanged(path); // same file, mtime unchanged -> must be a no-op
+        assertEquals(999, Config.HIGHLIGHT_RADIUS.get());
+    }
+
+    @Test
+    void reloadIfChangedReloadsWhenMtimeChanges() throws IOException {
+        final Path path = writeJson("{\"highlight\":{\"radius\":10}}");
+        Config.readFromDisk(path);
+        assertEquals(10, Config.HIGHLIGHT_RADIUS.get());
+
+        Files.writeString(path, "{\"highlight\":{\"radius\":20}}", StandardCharsets.UTF_8);
+        Files.setLastModifiedTime(path, FileTime.fromMillis(Files.getLastModifiedTime(path).toMillis() + 5000));
+
+        Config.reloadIfChanged(path);
+        assertEquals(20, Config.HIGHLIGHT_RADIUS.get());
     }
 
     private Path writeJson(String json) throws IOException {

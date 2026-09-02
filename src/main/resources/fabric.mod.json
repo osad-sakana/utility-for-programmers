@@ -8,7 +8,7 @@
         "${mod_authors}"
     ],
     "contact": {
-        "issues": "https://github.com/osad-sakana/utilitiesforprogrammers/issues"
+        "issues": "https://github.com/osad-sakana/utility-for-programmers/issues"
     },
     "license": "${mod_license}",
     "icon": "pack.png",
@@ -23,7 +23,7 @@
     ],
     "depends": {
         "fabricloader": ">=${loader_version}",
-        "minecraft": "=${minecraft_version}",
+        "minecraft": "~${minecraft_version}",
         "java": ">=25",
         "fabric-api": ">=0.158.0"
     }
