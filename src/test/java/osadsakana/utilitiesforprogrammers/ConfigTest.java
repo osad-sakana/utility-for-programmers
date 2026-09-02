@@ -36,6 +36,9 @@ class ConfigTest {
      */
     private static final long MTIME_BUMP_MILLIS = 5000L;
 
+    /** Fixed, far-from-"now" mtime used to make the stale-cursor regression unambiguous. */
+    private static final long SENTINEL_MTIME_MILLIS = 1_000_000_000_000L;
+
     @TempDir
     Path tempDir;
 
@@ -197,9 +200,15 @@ class ConfigTest {
     @Test
     void malformedFileFailureAdvancesTrackedMtimeSoUnchangedPollsAreSkipped() throws IOException {
         final Path path = writeJson("{\"highlight\":{\"radius\":50,}}"); // malformed: trailing comma
+        // Pin the mtime to a fixed sentinel so a *stale* cursor (the regression)
+        // can never coincidentally equal it -- two temp files created microseconds
+        // apart otherwise routinely share the same millisecond.
+        Files.setLastModifiedTime(path, FileTime.fromMillis(SENTINEL_MTIME_MILLIS));
 
         Config.load(path); // parse fails; must still advance the tracked mtime (the fix under test)
         final long mtimeAfterFailure = Files.getLastModifiedTime(path).toMillis();
+        // Assert the invariant this test is named after, directly.
+        assertEquals(mtimeAfterFailure, Config.lastLoadedModifiedMillis);
 
         // Replace the content with valid, distinguishable JSON but restore the
         // exact same mtime. A *correct* reloadIfChanged sees "unchanged" (matches
@@ -227,6 +236,21 @@ class ConfigTest {
         assertEquals(50, root.getAsJsonObject("highlight").get("radius").getAsInt());
         assertEquals("keep me", root.get("_comment").getAsString());
         assertTrue(root.getAsJsonObject("futureSection").get("newOption").getAsBoolean());
+    }
+
+    @Test
+    void writeBackPreservesAFutureKeyAddedInsideAnExistingSection() throws IOException {
+        // The scenario the merge fix actually targets: a newer mod version adds a
+        // key to a category ("highlight") this version has already registered
+        // other keys for, so the section is reused (Value#section), not recreated.
+        final Path path = writeJson("{\"highlight\":{\"radius\":50,\"futureKnob\":7}}");
+
+        Config.load(path);
+
+        final JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        final JsonObject highlight = root.getAsJsonObject("highlight");
+        assertEquals(50, highlight.get("radius").getAsInt());
+        assertEquals(7, highlight.get("futureKnob").getAsInt());
     }
 
     private Path writeJson(String json) throws IOException {

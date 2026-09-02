@@ -47,7 +47,7 @@ public final class Config {
     private static final Pattern HEX_COLOR = Pattern.compile("(?i)[0-9a-f]{1,8}");
     private static final List<Value<?>> ALL = new ArrayList<>();
 
-    private static long lastLoadedModifiedMillis = -1L;
+    static long lastLoadedModifiedMillis = -1L;
 
     // ----- HUD -----------------------------------------------------------------
     public static final BooleanValue HUD_ENABLED =
@@ -213,11 +213,6 @@ public final class Config {
             // If even the mtime can't be read, the next poll will simply retry.
         }
         return result;
-    }
-
-    /** Writes every registered {@link Value} to a fresh file (no unknown keys to preserve). */
-    static void writeToDisk(Path path) {
-        writeToDisk(path, null);
     }
 
     /**
