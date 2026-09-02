@@ -11,15 +11,26 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Ensure JAVA_HOME points at a JDK 25 if it isn't already set.
+# If JAVA_HOME isn't already set, try to point it at a JDK 25 install. This is
+# only needed to launch the Gradle daemon itself; the actual compile/run
+# toolchain (also JDK 25) is auto-provisioned separately by Gradle's foojay
+# resolver, so an unset JAVA_HOME here is not fatal — Gradle falls back to
+# whatever `java` is on PATH.
 if [ -z "${JAVA_HOME:-}" ]; then
   if [ -d /opt/homebrew/opt/openjdk@25 ]; then
     export JAVA_HOME=/opt/homebrew/opt/openjdk@25
   elif command -v /usr/libexec/java_home >/dev/null 2>&1; then
-    export JAVA_HOME="$(/usr/libexec/java_home -v 25 2>/dev/null || true)"
+    found="$(/usr/libexec/java_home -v 25 2>/dev/null || true)"
+    if [ -n "$found" ]; then
+      export JAVA_HOME="$found"
+    fi
   fi
 fi
-echo "Using JAVA_HOME=${JAVA_HOME:-<unset>}"
+if [ -n "${JAVA_HOME:-}" ]; then
+  echo "Using JAVA_HOME=$JAVA_HOME"
+else
+  echo "No JDK 25 found to set JAVA_HOME; falling back to PATH's java (Gradle will auto-provision a JDK 25 toolchain for the build itself)."
+fi
 
 # Prefer the locally extracted Gradle (the wrapper's distribution download is
 # blocked in some networks); fall back to the Gradle wrapper otherwise.

@@ -6,15 +6,19 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -28,12 +32,16 @@ import net.fabricmc.loader.api.FabricLoader;
  * periodically (see {@code ClientEvents.onClientTickPost}) so editing the file (or a
  * future in-game config screen) takes effect without restarting, matching the
  * previous NeoForge behavior.
+ *
+ * <p>Note on ranges: {@code radius}/{@code fillAlpha}/etc. are silently clamped to
+ * the ranges documented in {@code README.md} rather than rejected, so a hand-edited
+ * out-of-range value never breaks loading.
  */
 public final class Config {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("UtilitiesForProgrammers/Config");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path PATH = FabricLoader.getInstance().getConfigDir()
-            .resolve("utilitiesforprogrammers-client.json");
+    private static final String FILE_NAME = "utilitiesforprogrammers-client.json";
     private static final List<Value<?>> ALL = new ArrayList<>();
 
     private static long lastLoadedModifiedMillis = -1L;
@@ -90,33 +98,60 @@ public final class Config {
     public static final StringValue FOCUS_BORDER_COLOR_UNFOCUSED =
             str("focusBorder", "unfocusedColorARGB", "CCFF5555", Config::isHexColor);
 
-    /** Loads the config from disk (creating it with defaults if absent). Call once at startup. */
+    private static Path configPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+    }
+
+    /**
+     * Loads the config from disk, creating it with defaults only if the file is
+     * absent. Call once at startup.
+     */
     public static void load() {
-        readFromDisk();
-        writeToDisk();
+        load(configPath());
     }
 
     /** Re-reads the file from disk if its modification time changed since the last load. */
     public static void reloadIfChanged() {
-        try {
-            if (!Files.exists(PATH)) {
-                return;
-            }
-            final long modified = Files.getLastModifiedTime(PATH).toMillis();
-            if (modified != lastLoadedModifiedMillis) {
-                readFromDisk();
-            }
-        } catch (IOException e) {
-            // Leave in-memory values as-is; the file may be mid-write.
+        reloadIfChanged(configPath());
+    }
+
+    /**
+     * {@link #load()}, parameterized on the file path so it can be exercised in
+     * unit tests without a running {@link FabricLoader} instance.
+     *
+     * <p>An existing file is never overwritten here, even if it fails to parse:
+     * clobbering a hand-edited file with defaults on a typo would destroy the
+     * user's settings with no way back.
+     */
+    static void load(Path path) {
+        if (Files.exists(path)) {
+            readFromDisk(path);
+        } else {
+            writeToDisk(path);
         }
     }
 
-    private static void readFromDisk() {
-        if (!Files.exists(PATH)) {
+    /** {@link #reloadIfChanged()}, parameterized on the file path for unit tests. */
+    static void reloadIfChanged(Path path) {
+        try {
+            if (!Files.exists(path)) {
+                return;
+            }
+            final long modified = Files.getLastModifiedTime(path).toMillis();
+            if (modified != lastLoadedModifiedMillis) {
+                readFromDisk(path);
+            }
+        } catch (IOException e) {
+            LOGGER.warn("Failed to check {} for changes; keeping current values", path, e);
+        }
+    }
+
+    static void readFromDisk(Path path) {
+        if (!Files.exists(path)) {
             lastLoadedModifiedMillis = -1L;
             return;
         }
-        try (Reader reader = Files.newBufferedReader(PATH, StandardCharsets.UTF_8)) {
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             final JsonElement root = JsonParser.parseReader(reader);
             if (root != null && root.isJsonObject()) {
                 final JsonObject rootObject = root.getAsJsonObject();
@@ -124,31 +159,39 @@ public final class Config {
                     value.readFrom(rootObject);
                 }
             }
-            lastLoadedModifiedMillis = Files.getLastModifiedTime(PATH).toMillis();
+            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
         } catch (IOException | RuntimeException e) {
-            // Keep current (default or previously loaded) values on a malformed file.
+            // Keep current (default or previously loaded) values on a malformed file;
+            // deliberately does NOT write, so the user's file is left intact to fix.
+            LOGGER.error("Failed to read {}; keeping current values and leaving the file untouched", path, e);
         }
     }
 
-    private static void writeToDisk() {
+    static void writeToDisk(Path path) {
         final JsonObject root = new JsonObject();
         for (Value<?> value : ALL) {
             value.writeTo(root);
         }
         try {
-            Files.createDirectories(PATH.getParent());
-            try (Writer writer = Files.newBufferedWriter(PATH, StandardCharsets.UTF_8)) {
+            Files.createDirectories(path.toAbsolutePath().getParent());
+            final Path tmp = path.resolveSibling(path.getFileName() + ".tmp");
+            try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
                 GSON.toJson(root, writer);
             }
-            lastLoadedModifiedMillis = Files.getLastModifiedTime(PATH).toMillis();
+            // Atomic swap so a crash mid-write can never leave a truncated/corrupt file.
+            Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            lastLoadedModifiedMillis = Files.getLastModifiedTime(path).toMillis();
         } catch (IOException e) {
             // Non-fatal: the mod continues to run with in-memory defaults.
+            LOGGER.error("Failed to write {}; continuing with in-memory values", path, e);
         }
     }
 
+    private static final Pattern HEX_COLOR = Pattern.compile("(?i)[0-9a-f]{1,8}");
+
     /** Accepts 1-8 hex digits (RGB or ARGB). */
     public static boolean isHexColor(String value) {
-        return value != null && value.matches("(?i)[0-9a-f]{1,8}");
+        return value != null && HEX_COLOR.matcher(value).matches();
     }
 
     /** Parse an ARGB hex string to an int color, or transparent black if invalid. */
@@ -187,6 +230,11 @@ public final class Config {
     private Config() {
     }
 
+    // `value` is mutated in place (rather than replaced via a new Config instance)
+    // because these are `static final` singletons read every frame by name
+    // (e.g. Config.HUD_ENABLED.get()); it is `volatile` and only ever written from
+    // the client thread (tick-driven load/reload), so this is safe despite the
+    // project's general immutability preference.
     private abstract static class Value<T> {
         final String category;
         final String key;
@@ -260,11 +308,15 @@ public final class Config {
                 final JsonElement element = section.getAsJsonObject().get(key);
                 if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
                     final int candidate = element.getAsInt();
-                    value = Math.max(min, Math.min(max, candidate));
+                    value = clamp(candidate);
                     return;
                 }
             }
             value = defaultValue;
+        }
+
+        int clamp(int candidate) {
+            return Math.max(min, Math.min(max, candidate));
         }
 
         @Override
@@ -305,10 +357,18 @@ public final class Config {
 
     public static final class StringValue extends Value<String> {
         final Predicate<String> validator;
+        /** Cached {@link Config#parseColor(String)} of {@link #value}, refreshed alongside it. */
+        private volatile int argb;
 
         StringValue(String category, String key, String defaultValue, Predicate<String> validator) {
             super(category, key, defaultValue);
             this.validator = validator;
+            this.argb = parseColor(defaultValue);
+        }
+
+        /** The current value pre-parsed as an ARGB int; avoids re-parsing hex every frame. */
+        public int getArgb() {
+            return argb;
         }
 
         @Override
@@ -320,11 +380,13 @@ public final class Config {
                     final String candidate = element.getAsString();
                     if (validator.test(candidate)) {
                         value = candidate;
+                        argb = parseColor(candidate);
                         return;
                     }
                 }
             }
             value = defaultValue;
+            argb = parseColor(defaultValue);
         }
 
         @Override

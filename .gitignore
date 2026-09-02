@@ -19,7 +19,7 @@ bin/
 *.ipr
 *.iws
 
-# minecraft / neoforge runtime
+# minecraft / fabric runtime
 run/
 runs/
 logs/

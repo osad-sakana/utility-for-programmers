@@ -32,9 +32,9 @@ public final class FocusBorderOverlay implements HudElement {
             return;
         }
 
-        final int color = Config.parseColor(active
-                ? Config.FOCUS_BORDER_COLOR_FOCUSED.get()
-                : Config.FOCUS_BORDER_COLOR_UNFOCUSED.get());
+        final int color = active
+                ? Config.FOCUS_BORDER_COLOR_FOCUSED.getArgb()
+                : Config.FOCUS_BORDER_COLOR_UNFOCUSED.getArgb();
         final int thickness = Config.FOCUS_BORDER_THICKNESS.get();
         final int width = graphics.guiWidth();
         final int height = graphics.guiHeight();

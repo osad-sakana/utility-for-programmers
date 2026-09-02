@@ -65,6 +65,17 @@ config/utilitiesforprogrammers-client.json
 ```
 
 ファイルを直接編集して変更でき、**再起動なし**で反映されます（1秒間隔でファイルの更新を検知）。
+範囲外の値は自動的に上限/下限へ丸められます（エラーにはなりません）。
+
+| キー | 値域 | 既定値 |
+| --- | --- | --- |
+| `highlight.displaySeconds` | 0.5 〜 120.0 | 8.0 |
+| `highlight.radius` | 1 〜 128 | 32 |
+| `grid.radius` | 1 〜 32 | 8 |
+| `targetHighlight.outlineColorARGB` | 1〜8桁の16進数（RGB/ARGB） | `FFFFEE00` |
+| `targetHighlight.fillAlpha` | 0 〜 255 | 48 |
+| `focusBorder.thickness` | 1 〜 32 | 4 |
+| `focusBorder.focusedColorARGB` / `unfocusedColorARGB` | 1〜8桁の16進数（RGB/ARGB） | `CC55FF55` / `CCFF5555` |
 
 ---
 

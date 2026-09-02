@@ -46,7 +46,7 @@ public final class TargetHighlightRenderer {
             shape = Shapes.block();
         }
 
-        final int outlineColor = Config.parseColor(Config.TARGET_HL_COLOR.get());
+        final int outlineColor = Config.TARGET_HL_COLOR.getArgb();
         final Vec3 cam = mc.gameRenderer.mainCamera().position();
         final PoseStack pose = context.poseStack();
         final var submitNodeCollector = context.submitNodeCollector();
