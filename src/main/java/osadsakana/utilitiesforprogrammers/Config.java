@@ -122,16 +122,30 @@ public final class Config {
      * {@link #load()}, parameterized on the file path so it can be exercised in
      * unit tests without a running {@link FabricLoader} instance.
      *
-     * <p>A successful read is always followed by a write-back, so that keys added
-     * by a newer mod version get merged into an older user's file. A file that
-     * fails to parse is left completely untouched (never overwritten with
-     * defaults) so a hand-edit typo never destroys existing settings.
+     * <p>A successful parse is always followed by a write-back, seeded from the
+     * parsed document so any key this version doesn't recognize (a newer key from
+     * a future version, a hand-written comment field, ...) survives untouched;
+     * only the registered {@link Value}s are overwritten with their
+     * (possibly clamped/defaulted, see {@link Value#readFrom}) effective value.
+     * This is also how a newer mod version's additional keys get merged into an
+     * older user's file.
+     *
+     * <p>A file that fails to <b>parse</b> (invalid JSON, or valid JSON that isn't
+     * an object) is left completely untouched — never overwritten — so a syntax
+     * typo never destroys existing settings. A value that parses but is invalid
+     * for its key (wrong type, out-of-range number, bad hex string, ...) is
+     * corrected in memory (see the per-{@code Value} WARN log) and that corrected
+     * value <i>is</i> written back for that key, same as NeoForge's config screen
+     * would have normalized it.
      */
     static void load(Path path) {
         if (!Files.exists(path)) {
-            writeToDisk(path);
-        } else if (readFromDisk(path)) {
-            writeToDisk(path);
+            writeToDisk(path, null);
+            return;
+        }
+        final JsonObject parsed = parseAndApply(path);
+        if (parsed != null) {
+            writeToDisk(path, parsed);
         }
     }
 
@@ -139,6 +153,7 @@ public final class Config {
     static void reloadIfChanged(Path path) {
         try {
             if (!Files.exists(path)) {
+                lastLoadedModifiedMillis = -1L;
                 return;
             }
             final long modified = Files.getLastModifiedTime(path).toMillis();
@@ -155,25 +170,35 @@ public final class Config {
      *
      * @return {@code true} if the file parsed as a JSON object and its values were
      *         applied; {@code false} on any failure (missing/malformed file, or a
-     *         valid JSON document that isn't an object). Either way,
-     *         {@code lastLoadedModifiedMillis} is advanced so a persistently broken
-     *         file is not re-parsed (and re-logged) on every poll — only after it
-     *         next changes.
+     *         valid JSON document that isn't an object).
      */
     static boolean readFromDisk(Path path) {
+        return parseAndApply(path) != null;
+    }
+
+    /**
+     * Parses {@code path} and, on success, applies it to every registered
+     * {@link Value}.
+     *
+     * @return the parsed root object on success, or {@code null} on any failure
+     *         (missing/malformed file, or valid JSON that isn't an object). Either
+     *         way, {@code lastLoadedModifiedMillis} is advanced so a persistently
+     *         broken file is not re-parsed (and re-logged) on every poll — only
+     *         after it next changes.
+     */
+    private static JsonObject parseAndApply(Path path) {
         if (!Files.exists(path)) {
             lastLoadedModifiedMillis = -1L;
-            return false;
+            return null;
         }
-        boolean applied = false;
+        JsonObject result = null;
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             final JsonElement root = JsonParser.parseReader(reader);
             if (root != null && root.isJsonObject()) {
-                final JsonObject rootObject = root.getAsJsonObject();
+                result = root.getAsJsonObject();
                 for (Value<?> value : ALL) {
-                    value.readFrom(rootObject);
+                    value.readFrom(result);
                 }
-                applied = true;
             } else {
                 LOGGER.error("{} does not contain a JSON object; keeping current values", path);
             }
@@ -187,11 +212,23 @@ public final class Config {
         } catch (IOException ignored) {
             // If even the mtime can't be read, the next poll will simply retry.
         }
-        return applied;
+        return result;
     }
 
+    /** Writes every registered {@link Value} to a fresh file (no unknown keys to preserve). */
     static void writeToDisk(Path path) {
-        final JsonObject root = new JsonObject();
+        writeToDisk(path, null);
+    }
+
+    /**
+     * Writes every registered {@link Value} to {@code path}.
+     *
+     * @param base a previously-parsed document to seed the write from (its unknown
+     *             keys are preserved), or {@code null} to start from an empty
+     *             object (used when the file didn't exist yet).
+     */
+    private static void writeToDisk(Path path, JsonObject base) {
+        final JsonObject root = base != null ? base.deepCopy() : new JsonObject();
         for (Value<?> value : ALL) {
             value.writeTo(root);
         }

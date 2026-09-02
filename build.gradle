@@ -12,6 +12,9 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
+// Empty: Fabric Loom implicitly adds the repositories it needs (Fabric's maven,
+// Mojang's libraries, Maven Central) for the minecraft/fabric-loader/fabric-api/
+// gson/junit dependencies below.
 repositories {
 }
 
@@ -21,14 +24,14 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
 
     // NOTE: Config.java uses com.google.gson.* without an explicit dependency here.
-    // Minecraft itself depends on Gson and Loom puts it on the compile/runtime
-    // classpath, so it "just works" — but that means the version compiled against
-    // is whatever version Mojang currently ships, not something this build pins.
+    // Loom already puts Gson on the compile/runtime classpath (Minecraft depends on
+    // it), so it "just works" — but that means the version compiled against is
+    // whatever version Mojang currently ships, not something this build pins.
     // A pinned `compileOnly` dependency was tried and rejected: Gradle's conflict
-    // resolution always picks the higher of the two versions anyway (Minecraft's),
-    // so a pin here doesn't actually control what's compiled against — it only
-    // creates a second, misleading source of truth. If Minecraft ever drops Gson,
-    // this will fail to compile and needs a real (non-compileOnly) dependency.
+    // resolution always picks the higher of the two versions in play, so a pin
+    // below Minecraft's current version doesn't actually control what's compiled
+    // against — it only creates a second, misleading source of truth. If Minecraft
+    // ever drops Gson, this will fail to compile and needs a real dependency.
 
     testImplementation platform('org.junit:junit-bom:5.12.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'

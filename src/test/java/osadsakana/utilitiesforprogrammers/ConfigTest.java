@@ -29,6 +29,13 @@ import org.junit.jupiter.api.io.TempDir;
  */
 class ConfigTest {
 
+    /**
+     * Must exceed any filesystem's mtime granularity (some are 1-2s) so the bumped
+     * timestamp in {@link #reloadIfChangedReloadsWhenMtimeChanges} is unambiguously
+     * "later" everywhere, not just on high-resolution filesystems.
+     */
+    private static final long MTIME_BUMP_MILLIS = 5000L;
+
     @TempDir
     Path tempDir;
 
@@ -174,10 +181,52 @@ class ConfigTest {
         assertEquals(10, Config.HIGHLIGHT_RADIUS.get());
 
         Files.writeString(path, "{\"highlight\":{\"radius\":20}}", StandardCharsets.UTF_8);
-        Files.setLastModifiedTime(path, FileTime.fromMillis(Files.getLastModifiedTime(path).toMillis() + 5000));
+        Files.setLastModifiedTime(path,
+                FileTime.fromMillis(Files.getLastModifiedTime(path).toMillis() + MTIME_BUMP_MILLIS));
 
         Config.reloadIfChanged(path);
         assertEquals(20, Config.HIGHLIGHT_RADIUS.get());
+    }
+
+    /**
+     * Regression test for a HIGH bug that was fixed and then, in review, found not
+     * to be covered by any test: a failed parse must still advance
+     * {@code lastLoadedModifiedMillis}, or {@code reloadIfChanged} re-parses (and
+     * re-logs) an unchanged-but-broken file on every single poll forever.
+     */
+    @Test
+    void malformedFileFailureAdvancesTrackedMtimeSoUnchangedPollsAreSkipped() throws IOException {
+        final Path path = writeJson("{\"highlight\":{\"radius\":50,}}"); // malformed: trailing comma
+
+        Config.load(path); // parse fails; must still advance the tracked mtime (the fix under test)
+        final long mtimeAfterFailure = Files.getLastModifiedTime(path).toMillis();
+
+        // Replace the content with valid, distinguishable JSON but restore the
+        // exact same mtime. A *correct* reloadIfChanged sees "unchanged" (matches
+        // what was recorded above) and skips it. A regression that failed to
+        // advance the tracked mtime on the parse failure would instead see this as
+        // still "changed" relative to its stale cursor and re-read it.
+        Files.writeString(path, "{\"highlight\":{\"radius\":999}}", StandardCharsets.UTF_8);
+        Files.setLastModifiedTime(path, FileTime.fromMillis(mtimeAfterFailure));
+
+        Config.reloadIfChanged(path);
+
+        // Fixed behavior: skipped, so the value is untouched (still the default
+        // from @BeforeEach) rather than having picked up 999.
+        assertEquals(32, Config.HIGHLIGHT_RADIUS.get());
+    }
+
+    @Test
+    void writeBackPreservesKeysThisVersionDoesNotRecognize() throws IOException {
+        final Path path = writeJson(
+                "{\"highlight\":{\"radius\":50},\"_comment\":\"keep me\",\"futureSection\":{\"newOption\":true}}");
+
+        Config.load(path);
+
+        final JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
+        assertEquals(50, root.getAsJsonObject("highlight").get("radius").getAsInt());
+        assertEquals("keep me", root.get("_comment").getAsString());
+        assertTrue(root.getAsJsonObject("futureSection").get("newOption").getAsBoolean());
     }
 
     private Path writeJson(String json) throws IOException {
